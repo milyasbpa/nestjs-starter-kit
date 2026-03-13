@@ -151,29 +151,50 @@ src/
 
 ## 3. Code Quality & Linting
 
-- [ ] Install dan konfigurasi ESLint + Prettier:
+> **Catatan:** NestJS 11 sudah meng-scaffold ESLint menggunakan **flat config format** (`eslint.config.mjs`) dengan ESLint 9 + `typescript-eslint` + `eslint-plugin-prettier`. Jangan buat `.eslintrc.js` (format legacy) — update `eslint.config.mjs` yang sudah ada.
+
+- [x] Install package tambahan yang belum ada:
   ```bash
-  npm install -D eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin \
-    prettier eslint-config-prettier eslint-plugin-prettier \
-    eslint-plugin-import
+  npm install -D eslint-plugin-import husky lint-staged \
+    @commitlint/cli @commitlint/config-conventional
   ```
-- [ ] Buat `.eslintrc.js`:
+- [x] Update `eslint.config.mjs` — tambahkan `eslint-plugin-import` dan rules tambahan:
   ```js
-  module.exports = {
-    parser: '@typescript-eslint/parser',
-    extends: [
-      'plugin:@typescript-eslint/recommended',
-      'plugin:prettier/recommended',
-    ],
-    rules: {
-      '@typescript-eslint/explicit-function-return-type': 'warn',
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-      'import/order': ['error', { 'newlines-between': 'always' }],
+  // @ts-check
+  import eslint from '@eslint/js';
+  import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
+  import importPlugin from 'eslint-plugin-import';
+  import globals from 'globals';
+  import tseslint from 'typescript-eslint';
+
+  export default tseslint.config(
+    { ignores: ['eslint.config.mjs'] },
+    eslint.configs.recommended,
+    ...tseslint.configs.recommendedTypeChecked,
+    eslintPluginPrettierRecommended,
+    {
+      plugins: { import: importPlugin },
+      languageOptions: {
+        globals: { ...globals.node, ...globals.jest },
+        sourceType: 'commonjs',
+        parserOptions: {
+          projectService: true,
+          tsconfigRootDir: import.meta.dirname,
+        },
+      },
+      rules: {
+        '@typescript-eslint/explicit-function-return-type': 'warn',
+        '@typescript-eslint/no-explicit-any': 'warn',
+        '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+        '@typescript-eslint/no-floating-promises': 'warn',
+        '@typescript-eslint/no-unsafe-argument': 'warn',
+        'import/order': ['error', { 'newlines-between': 'always' }],
+        'prettier/prettier': ['error', { endOfLine: 'auto' }],
+      },
     },
-  };
+  );
   ```
-- [ ] Buat `.prettierrc`:
+- [x] Update `.prettierrc` — NestJS scaffold hanya punya 2 opsi, lengkapi:
   ```json
   {
     "singleQuote": true,
@@ -183,30 +204,32 @@ src/
     "semi": true
   }
   ```
-- [ ] Tambahkan scripts di `package.json`:
+- [x] Verifikasi scripts di `package.json` sudah sesuai (NestJS scaffold sudah include, pastikan format-nya):
   ```json
-  "lint": "eslint '{src,apps,libs,test}/**/*.ts' --fix",
-  "format": "prettier --write 'src/**/*.ts' 'test/**/*.ts'"
+  "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+  "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\""
   ```
-- [ ] Install `husky` + `lint-staged` untuk pre-commit hook:
+- [x] Inisialisasi husky:
   ```bash
-  npm install -D husky lint-staged
   npx husky init
   ```
-- [ ] Konfigurasi `lint-staged` di `package.json`:
+- [x] Konfigurasi `lint-staged` di `package.json`:
   ```json
   "lint-staged": {
     "*.ts": ["eslint --fix", "prettier --write"]
   }
   ```
-- [ ] Tambahkan hook di `.husky/pre-commit`:
+- [x] Update hook di `.husky/pre-commit`:
   ```bash
   npx lint-staged
   ```
-- [ ] (opsional) Setup `commitlint` untuk enforce Conventional Commits:
+- [x] Buat `commitlint.config.js`:
+  ```js
+  module.exports = { extends: ['@commitlint/config-conventional'] };
+  ```
+- [x] Tambahkan hook di `.husky/commit-msg`:
   ```bash
-  npm install -D @commitlint/cli @commitlint/config-conventional
-  echo "module.exports = { extends: ['@commitlint/config-conventional'] };" > commitlint.config.js
+  npx --no -- commitlint --edit $1
   ```
 
 ---
