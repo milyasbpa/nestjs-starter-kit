@@ -1,0 +1,1387 @@
+# NestJS Starter Kit — Professional & Production-Level Setup
+
+> Checklist ini dirancang sebagai panduan lengkap untuk membangun NestJS backend project yang scalable, maintainable, dan production-ready.
+> Eksekusi **satu per satu** sesuai urutan. Setiap section bisa dijadikan milestone tersendiri.
+
+---
+
+## Table of Contents
+
+1. [Project Initialization](#1-project-initialization)
+2. [Folder Structure & Architecture](#2-folder-structure--architecture)
+3. [Code Quality & Linting](#3-code-quality--linting)
+4. [Environment Configuration](#4-environment-configuration)
+5. [Database & ORM](#5-database--orm)
+6. [Migrations & Seeding](#6-migrations--seeding)
+7. [Authentication & Authorization](#7-authentication--authorization)
+8. [API Design & Swagger](#8-api-design--swagger)
+9. [Validation & Transformation](#9-validation--transformation)
+10. [Error Handling & Exception Filters](#10-error-handling--exception-filters)
+11. [Logging](#11-logging)
+12. [Caching](#12-caching)
+13. [Queue & Background Jobs](#13-queue--background-jobs)
+14. [File Upload & Storage](#14-file-upload--storage)
+15. [Email & Notifications](#15-email--notifications)
+16. [WebSocket / Real-time](#16-websocket--real-time)
+17. [Testing Setup](#17-testing-setup)
+18. [CI/CD Pipeline](#18-cicd-pipeline)
+19. [Security Hardening](#19-security-hardening)
+20. [Performance Optimization](#20-performance-optimization)
+
+---
+
+## 1. Project Initialization
+
+- [ ] Install NestJS CLI dan buat project baru:
+  ```bash
+  npm i -g @nestjs/cli
+  nest new project-name --package-manager pnpm
+  ```
+- [ ] Pilih `pnpm` sebagai package manager (lebih efisien dari npm/yarn)
+- [ ] Set `engines` di `package.json` untuk lock versi Node.js minimum:
+  ```json
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+  ```
+- [ ] Update `package.json`: set `name`, `description`, `version` (e.g. `1.0.0`)
+- [ ] Inisialisasi Git repository:
+  ```bash
+  git init && git add . && git commit -m "chore: initial commit"
+  ```
+- [ ] Setup `.gitignore` yang proper — tambahkan:
+  ```
+  .env
+  .env.*
+  !.env.example
+  dist/
+  node_modules/
+  coverage/
+  *.log
+  ```
+- [ ] Buat `README.md` dengan instruksi setup project (prerequisites, env setup, cara run, cara test)
+- [ ] Pastikan structure TypeScript sudah benar di `tsconfig.json`:
+  ```json
+  {
+    "compilerOptions": {
+      "strict": true,
+      "strictNullChecks": true,
+      "noImplicitAny": true,
+      "esModuleInterop": true,
+      "experimentalDecorators": true,
+      "emitDecoratorMetadata": true,
+      "target": "ES2021",
+      "module": "commonjs"
+    }
+  }
+  ```
+
+---
+
+## 2. Folder Structure & Architecture
+
+Gunakan **Modular Clean Architecture** — setiap domain/feature adalah NestJS Module yang mandiri.
+
+- [ ] Buat struktur folder berikut:
+
+```
+src/
+├── common/
+│   ├── constants/          # app.constants, error-codes.constants
+│   ├── decorators/         # custom decorators (@CurrentUser, @Public, dll)
+│   ├── dto/                # shared DTOs (PaginationDto, CursorDto)
+│   ├── exceptions/         # custom exceptions
+│   ├── filters/            # global exception filters
+│   ├── guards/             # global guards (JwtAuthGuard, RolesGuard)
+│   ├── interceptors/       # global interceptors (TransformResponse, Logging)
+│   ├── interfaces/         # shared TypeScript interfaces
+│   ├── middlewares/        # HTTP middlewares
+│   ├── pipes/              # custom pipes (ParseUUIDPipe, TrimPipe)
+│   └── utils/              # helpers, formatters, validators
+│
+├── config/
+│   ├── app.config.ts       # application config
+│   ├── database.config.ts  # database connection config
+│   ├── jwt.config.ts       # JWT options
+│   ├── redis.config.ts     # Redis config
+│   └── config.module.ts    # root ConfigModule setup
+│
+├── database/
+│   ├── migrations/         # TypeORM/Prisma migration files
+│   ├── seeds/              # seed scripts per entity
+│   └── database.module.ts  # DatabaseModule setup
+│
+├── modules/
+│   └── [feature]/
+│       ├── dto/            # CreateFeatureDto, UpdateFeatureDto, ResponseFeatureDto
+│       ├── entities/       # TypeORM entity / Prisma model definition
+│       ├── [feature].controller.ts
+│       ├── [feature].service.ts
+│       ├── [feature].repository.ts   # (opsional, jika memakai Repository Pattern)
+│       └── [feature].module.ts
+│
+├── app.module.ts           # root AppModule
+└── main.ts                 # bootstrap, global middleware, Swagger setup
+```
+
+- [ ] Buat `app.module.ts` sebagai root module yang mengimpor semua feature module
+- [ ] Buat `src/common/interfaces/paginated-response.interface.ts` untuk standarisasi response pagination:
+  ```typescript
+  export interface PaginatedResponse<T> {
+    data: T[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }
+  ```
+- [ ] Buat `src/common/interfaces/api-response.interface.ts` untuk standarisasi semua response:
+  ```typescript
+  export interface ApiResponse<T> {
+    success: boolean;
+    data: T;
+    message?: string;
+    timestamp: string;
+  }
+  ```
+
+---
+
+## 3. Code Quality & Linting
+
+- [ ] Install dan konfigurasi ESLint + Prettier:
+  ```bash
+  pnpm add -D eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin \
+    prettier eslint-config-prettier eslint-plugin-prettier \
+    eslint-plugin-import
+  ```
+- [ ] Buat `.eslintrc.js`:
+  ```js
+  module.exports = {
+    parser: '@typescript-eslint/parser',
+    extends: [
+      'plugin:@typescript-eslint/recommended',
+      'plugin:prettier/recommended',
+    ],
+    rules: {
+      '@typescript-eslint/explicit-function-return-type': 'warn',
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      'import/order': ['error', { 'newlines-between': 'always' }],
+    },
+  };
+  ```
+- [ ] Buat `.prettierrc`:
+  ```json
+  {
+    "singleQuote": true,
+    "trailingComma": "all",
+    "printWidth": 100,
+    "tabWidth": 2,
+    "semi": true
+  }
+  ```
+- [ ] Tambahkan scripts di `package.json`:
+  ```json
+  "lint": "eslint '{src,apps,libs,test}/**/*.ts' --fix",
+  "format": "prettier --write 'src/**/*.ts' 'test/**/*.ts'"
+  ```
+- [ ] Install `husky` + `lint-staged` untuk pre-commit hook:
+  ```bash
+  pnpm add -D husky lint-staged
+  npx husky init
+  ```
+- [ ] Konfigurasi `lint-staged` di `package.json`:
+  ```json
+  "lint-staged": {
+    "*.ts": ["eslint --fix", "prettier --write"]
+  }
+  ```
+- [ ] Tambahkan hook di `.husky/pre-commit`:
+  ```bash
+  npx lint-staged
+  ```
+- [ ] (opsional) Setup `commitlint` untuk enforce Conventional Commits:
+  ```bash
+  pnpm add -D @commitlint/cli @commitlint/config-conventional
+  echo "module.exports = { extends: ['@commitlint/config-conventional'] };" > commitlint.config.js
+  ```
+
+---
+
+## 4. Environment Configuration
+
+- [ ] Install `@nestjs/config` dan `joi` untuk validasi env:
+  ```bash
+  pnpm add @nestjs/config joi
+  ```
+- [ ] Buat file `.env.development`, `.env.staging`, `.env.production` (jangan di-commit), dan `.env.example` sebagai reference yang di-commit
+- [ ] Isi `.env.example`:
+  ```env
+  # App
+  NODE_ENV=development
+  PORT=3000
+  APP_NAME=nestjs-starter
+
+  # Database
+  DB_HOST=localhost
+  DB_PORT=5432
+  DB_USERNAME=postgres
+  DB_PASSWORD=secret
+  DB_NAME=myapp_dev
+
+  # JWT
+  JWT_SECRET=your-super-secret-key
+  JWT_ACCESS_EXPIRES_IN=15m
+  JWT_REFRESH_EXPIRES_IN=7d
+
+  # Redis
+  REDIS_HOST=localhost
+  REDIS_PORT=6379
+  REDIS_PASSWORD=
+
+  # Storage
+  AWS_S3_BUCKET=
+  AWS_ACCESS_KEY_ID=
+  AWS_SECRET_ACCESS_KEY=
+  AWS_REGION=ap-southeast-1
+  ```
+- [ ] Buat `src/config/app.config.ts` dengan validasi Joi:
+  ```typescript
+  import * as Joi from 'joi';
+
+  export const appConfig = () => ({
+    port: parseInt(process.env.PORT, 10) || 3000,
+    nodeEnv: process.env.NODE_ENV,
+    appName: process.env.APP_NAME,
+  });
+
+  export const appValidationSchema = Joi.object({
+    NODE_ENV: Joi.string().valid('development', 'staging', 'production').required(),
+    PORT: Joi.number().default(3000),
+    APP_NAME: Joi.string().required(),
+  });
+  ```
+- [ ] Setup `ConfigModule` di `app.module.ts`:
+  ```typescript
+  ConfigModule.forRoot({
+    isGlobal: true,
+    envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
+    validationSchema: appValidationSchema,
+    load: [appConfig, databaseConfig, jwtConfig, redisConfig],
+  })
+  ```
+- [ ] Buat config module terpisah per domain (`database.config.ts`, `jwt.config.ts`, `redis.config.ts`) menggunakan `registerAs`:
+  ```typescript
+  export const databaseConfig = registerAs('database', () => ({
+    host: process.env.DB_HOST,
+    port: parseInt(process.env.DB_PORT, 10),
+    // ...
+  }));
+  ```
+- [ ] Buat `Makefile` untuk perintah yang sering digunakan:
+  ```makefile
+  dev:
+    NODE_ENV=development pnpm start:dev
+  staging:
+    NODE_ENV=staging pnpm start
+  prod:
+    NODE_ENV=production pnpm start:prod
+  migrate:
+    pnpm typeorm migration:run
+  seed:
+    pnpm ts-node src/database/seeds/run-seed.ts
+  ```
+
+---
+
+## 5. Database & ORM
+
+Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih mature di NestJS).
+> Dokumen ini menggunakan **TypeORM** sebagai default. Ganti dengan Prisma jika diinginkan.
+
+- [ ] Install dependencies:
+  ```bash
+  pnpm add @nestjs/typeorm typeorm pg
+  # Untuk MySQL: pnpm add mysql2
+  # Untuk SQLite (dev/test): pnpm add better-sqlite3
+  ```
+- [ ] Buat `src/config/database.config.ts`:
+  ```typescript
+  export const databaseConfig = registerAs('database', () => ({
+    type: 'postgres' as const,
+    host: process.env.DB_HOST,
+    port: parseInt(process.env.DB_PORT, 10),
+    username: process.env.DB_USERNAME,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    entities: [__dirname + '/../**/*.entity{.ts,.js}'],
+    migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],
+    synchronize: process.env.NODE_ENV === 'development', // NEVER true in production
+    logging: process.env.NODE_ENV === 'development',
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  }));
+  ```
+- [ ] Buat `src/database/database.module.ts`:
+  ```typescript
+  @Module({
+    imports: [
+      TypeOrmModule.forRootAsync({
+        inject: [ConfigService],
+        useFactory: (config: ConfigService) => config.get('database'),
+      }),
+    ],
+  })
+  export class DatabaseModule {}
+  ```
+- [ ] Buat base entity `src/common/entities/base.entity.ts`:
+  ```typescript
+  export abstract class BaseEntity {
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
+
+    @CreateDateColumn()
+    createdAt: Date;
+
+    @UpdateDateColumn()
+    updatedAt: Date;
+
+    @DeleteDateColumn()
+    deletedAt: Date | null; // soft delete
+  }
+  ```
+- [ ] Setup **Repository Pattern** — buat custom repository untuk setiap entity agar mudah di-mock saat testing
+- [ ] Setup Docker Compose untuk development:
+  ```yaml
+  # docker-compose.yml
+  version: '3.8'
+  services:
+    postgres:
+      image: postgres:16-alpine
+      environment:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: secret
+        POSTGRES_DB: myapp_dev
+      ports:
+        - '5432:5432'
+      volumes:
+        - postgres_data:/var/lib/postgresql/data
+
+    redis:
+      image: redis:7-alpine
+      ports:
+        - '6379:6379'
+
+  volumes:
+    postgres_data:
+  ```
+- [ ] Jalankan Docker Compose untuk local development:
+  ```bash
+  docker-compose up -d
+  ```
+
+---
+
+## 6. Migrations & Seeding
+
+- [ ] Buat `src/database/data-source.ts` untuk TypeORM CLI:
+  ```typescript
+  import { DataSource } from 'typeorm';
+  import * as dotenv from 'dotenv';
+
+  dotenv.config({ path: `.env.${process.env.NODE_ENV || 'development'}` });
+
+  export const AppDataSource = new DataSource({
+    type: 'postgres',
+    host: process.env.DB_HOST,
+    // ... config sama seperti di database.config.ts
+    entities: ['src/**/*.entity.ts'],
+    migrations: ['src/database/migrations/*.ts'],
+  });
+  ```
+- [ ] Tambahkan scripts TypeORM di `package.json`:
+  ```json
+  "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli",
+  "migration:generate": "pnpm typeorm -- migration:generate -d src/database/data-source.ts",
+  "migration:run": "pnpm typeorm -- migration:run -d src/database/data-source.ts",
+  "migration:revert": "pnpm typeorm -- migration:revert -d src/database/data-source.ts",
+  "migration:show": "pnpm typeorm -- migration:show -d src/database/data-source.ts"
+  ```
+- [ ] **Jangan gunakan `synchronize: true` di staging/production** — selalu gunakan migration
+- [ ] Buat base seeder interface `src/database/seeds/seeder.interface.ts`:
+  ```typescript
+  export interface Seeder {
+    run(dataSource: DataSource): Promise<void>;
+  }
+  ```
+- [ ] Buat seeder runner `src/database/seeds/run-seed.ts` yang mengeksekusi semua seeder secara berurutan
+- [ ] Buat seed minimal: `UserSeeder` (admin account) untuk fresh environment
+- [ ] Gunakan `faker.js` untuk generate data development:
+  ```bash
+  pnpm add -D @faker-js/faker
+  ```
+- [ ] Tambahkan `seed` script di `package.json`:
+  ```json
+  "seed": "ts-node -r tsconfig-paths/register src/database/seeds/run-seed.ts"
+  ```
+
+---
+
+## 7. Authentication & Authorization
+
+- [ ] Install dependencies:
+  ```bash
+  pnpm add @nestjs/jwt @nestjs/passport passport passport-jwt passport-local bcrypt
+  pnpm add -D @types/passport-jwt @types/passport-local @types/bcrypt
+  ```
+- [ ] Buat `AuthModule` dengan struktur lengkap:
+  ```
+  src/modules/auth/
+  ├── dto/
+  │   ├── login.dto.ts
+  │   ├── register.dto.ts
+  │   ├── refresh-token.dto.ts
+  │   └── auth-response.dto.ts
+  ├── strategies/
+  │   ├── jwt.strategy.ts         # validate access token
+  │   ├── jwt-refresh.strategy.ts # validate refresh token
+  │   └── local.strategy.ts       # validate email/password
+  ├── guards/
+  │   ├── jwt-auth.guard.ts
+  │   ├── jwt-refresh.guard.ts
+  │   └── local-auth.guard.ts
+  ├── auth.controller.ts
+  ├── auth.service.ts
+  └── auth.module.ts
+  ```
+- [ ] Implementasi endpoint:
+  - `POST /auth/register` — daftar user baru
+  - `POST /auth/login` — login, return `accessToken` + `refreshToken`
+  - `POST /auth/refresh` — gunakan refresh token untuk dapat access token baru
+  - `POST /auth/logout` — revoke refresh token
+  - `GET /auth/me` — get current user profile
+- [ ] Implementasi **JWT Access Token** (short-lived, 15 menit) + **Refresh Token** (long-lived, 7 hari):
+  ```typescript
+  // auth.service.ts
+  async generateTokens(userId: string, email: string) {
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync({ sub: userId, email }, { expiresIn: '15m' }),
+      this.jwtService.signAsync({ sub: userId, email }, {
+        secret: this.config.get('jwt.refreshSecret'),
+        expiresIn: '7d',
+      }),
+    ]);
+    return { accessToken, refreshToken };
+  }
+  ```
+- [ ] Simpan **hash** dari refresh token ke database (bukan plain text)
+- [ ] Buat `@CurrentUser()` decorator:
+  ```typescript
+  export const CurrentUser = createParamDecorator(
+    (data: keyof User | undefined, ctx: ExecutionContext) => {
+      const request = ctx.switchToHttp().getRequest();
+      return data ? request.user?.[data] : request.user;
+    },
+  );
+  ```
+- [ ] Buat `@Public()` decorator untuk skip auth guard di endpoint tertentu:
+  ```typescript
+  export const IS_PUBLIC_KEY = 'isPublic';
+  export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
+  ```
+- [ ] Setup `JwtAuthGuard` sebagai **global guard** di `app.module.ts`:
+  ```typescript
+  { provide: APP_GUARD, useClass: JwtAuthGuard }
+  ```
+- [ ] Implementasi **RBAC (Role-Based Access Control)**:
+  - Buat `Role` enum: `ADMIN`, `USER`, `MODERATOR`
+  - Buat `@Roles(...roles)` decorator
+  - Buat `RolesGuard` — cek role dari JWT payload
+  - Register sebagai global guard setelah `JwtAuthGuard`
+- [ ] Hash password menggunakan `bcrypt` dengan salt rounds minimum 12:
+  ```typescript
+  const hashedPassword = await bcrypt.hash(password, 12);
+  ```
+- [ ] (opsional) Implementasi **OAuth2 / Social Login**:
+  - `passport-google-oauth20` untuk Google
+  - `passport-github2` untuk GitHub
+
+---
+
+## 8. API Design & Swagger
+
+- [ ] Install Swagger:
+  ```bash
+  pnpm add @nestjs/swagger swagger-ui-express
+  ```
+- [ ] Setup Swagger di `main.ts` — **hanya aktif di non-production**:
+  ```typescript
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle(process.env.APP_NAME)
+      .setDescription('API Documentation')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .addServer(`http://localhost:${port}`, 'Local')
+      .addServer('https://api.staging.example.com', 'Staging')
+      .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document, {
+      swaggerOptions: { persistAuthorization: true },
+    });
+  }
+  ```
+- [ ] Dekorasi semua DTO dan controller dengan Swagger decorators:
+  - `@ApiTags('auth')` di controller
+  - `@ApiOperation({ summary: '...' })` di setiap endpoint
+  - `@ApiResponse({ status: 200, type: ResponseDto })` untuk documented response
+  - `@ApiProperty()` di setiap DTO field
+  - `@ApiBearerAuth()` untuk endpoint yang butuh auth
+- [ ] Buat reusable Swagger utilities di `src/common/decorators/`:
+  ```typescript
+  // @ApiPaginatedResponse
+  export const ApiPaginatedResponse = <T>(dto: Type<T>) =>
+    applyDecorators(
+      ApiOkResponse({ schema: { ... } })
+    );
+  ```
+- [ ] Gunakan **versioning** untuk API:
+  ```typescript
+  app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
+  // Endpoint: /v1/users, /v2/users
+  ```
+- [ ] Aktifkan **global prefix**:
+  ```typescript
+  app.setGlobalPrefix('api');
+  ```
+- [ ] Standardisasi response format via `TransformInterceptor`:
+  ```typescript
+  @Injectable()
+  export class TransformInterceptor<T> implements NestInterceptor<T, ApiResponse<T>> {
+    intercept(context: ExecutionContext, next: CallHandler): Observable<ApiResponse<T>> {
+      return next.handle().pipe(
+        map(data => ({
+          success: true,
+          data,
+          timestamp: new Date().toISOString(),
+        })),
+      );
+    }
+  }
+  ```
+
+---
+
+## 9. Validation & Transformation
+
+- [ ] Install `class-validator` dan `class-transformer`:
+  ```bash
+  pnpm add class-validator class-transformer
+  ```
+- [ ] Setup `ValidationPipe` secara global di `main.ts`:
+  ```typescript
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,            // strip unknown fields
+      forbidNonWhitelisted: true, // throw error jika ada field tidak dikenal
+      transform: true,            // auto-transform payload ke DTO class
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    }),
+  );
+  ```
+- [ ] Gunakan decorator `class-validator` di semua DTO:
+  ```typescript
+  export class CreateUserDto {
+    @ApiProperty({ example: 'user@example.com' })
+    @IsEmail()
+    @IsNotEmpty()
+    email: string;
+
+    @ApiProperty({ minLength: 8 })
+    @IsString()
+    @MinLength(8)
+    @Matches(/^(?=.*[A-Z])(?=.*\d)/, { message: 'Password too weak' })
+    password: string;
+  }
+  ```
+- [ ] Buat custom validator decorator jika dibutuhkan:
+  ```typescript
+  @ValidatorConstraint({ async: true })
+  @Injectable()
+  export class IsEmailUniqueConstraint implements ValidatorConstraintInterface {
+    constructor(private usersService: UsersService) {}
+    async validate(email: string): Promise<boolean> {
+      const user = await this.usersService.findByEmail(email);
+      return !user;
+    }
+  }
+  export const IsEmailUnique = () => registerDecorator({ ... });
+  ```
+- [ ] Buat `TrimPipe` untuk otomatis strip whitespace dari string inputs
+- [ ] Buat `ParseUUIDPipe` custom dengan pesan error yang jelas:
+  ```typescript
+  new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND })
+  ```
+- [ ] Setup `enableImplicitConversion: true` agar query params otomatis di-cast (string → number, string → boolean)
+
+---
+
+## 10. Error Handling & Exception Filters
+
+- [ ] Buat `src/common/exceptions/` dengan custom exceptions:
+  ```typescript
+  export class BusinessException extends HttpException {
+    constructor(message: string, status: HttpStatus, public readonly code: string) {
+      super({ message, code }, status);
+    }
+  }
+
+  export class ResourceNotFoundException extends BusinessException {
+    constructor(resource: string, id: string) {
+      super(`${resource} with id '${id}' not found`, HttpStatus.NOT_FOUND, 'RESOURCE_NOT_FOUND');
+    }
+  }
+
+  export class DuplicateResourceException extends BusinessException {
+    constructor(resource: string, field: string) {
+      super(`${resource} with this ${field} already exists`, HttpStatus.CONFLICT, 'DUPLICATE_RESOURCE');
+    }
+  }
+  ```
+- [ ] Buat `GlobalExceptionFilter` di `src/common/filters/global-exception.filter.ts`:
+  ```typescript
+  @Catch()
+  export class GlobalExceptionFilter implements ExceptionFilter {
+    catch(exception: unknown, host: ArgumentsHost): void {
+      const ctx = host.switchToHttp();
+      const response = ctx.getResponse<Response>();
+      const request = ctx.getRequest<Request>();
+
+      let status = HttpStatus.INTERNAL_SERVER_ERROR;
+      let message = 'Internal server error';
+      let code = 'INTERNAL_ERROR';
+
+      if (exception instanceof HttpException) {
+        status = exception.getStatus();
+        const exRes = exception.getResponse();
+        message = typeof exRes === 'object' ? (exRes as any).message : exRes;
+        code = typeof exRes === 'object' ? (exRes as any).code : 'HTTP_EXCEPTION';
+      }
+
+      // Log dan kirim ke monitoring
+      response.status(status).json({
+        success: false,
+        error: { code, message },
+        path: request.url,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+  ```
+- [ ] Register `GlobalExceptionFilter` secara global di `main.ts`:
+  ```typescript
+  app.useGlobalFilters(new GlobalExceptionFilter());
+  ```
+- [ ] Handle **TypeORM errors** di dalam filter (e.g. `QueryFailedError` code `23505` → duplicate key)
+- [ ] Handle **ValidationPipe errors** agar format response konsisten dengan error lainnya
+- [ ] Buat `src/common/constants/error-codes.constants.ts` — centralized error code registry
+
+---
+
+## 11. Logging
+
+- [ ] Install `winston` + NestJS winston transport:
+  ```bash
+  pnpm add nest-winston winston winston-daily-rotate-file
+  ```
+- [ ] Setup `WinstonModule` di `app.module.ts`:
+  ```typescript
+  WinstonModule.forRoot({
+    transports: [
+      new winston.transports.Console({
+        format: process.env.NODE_ENV === 'production'
+          ? winston.format.json()
+          : winston.format.combine(
+              winston.format.colorize(),
+              winston.format.simple(),
+            ),
+      }),
+      new DailyRotateFile({
+        filename: 'logs/error-%DATE%.log',
+        datePattern: 'YYYY-MM-DD',
+        level: 'error',
+        maxFiles: '30d',
+      }),
+      new DailyRotateFile({
+        filename: 'logs/combined-%DATE%.log',
+        datePattern: 'YYYY-MM-DD',
+        maxFiles: '14d',
+      }),
+    ],
+  })
+  ```
+- [ ] Buat `LoggingInterceptor` untuk log setiap incoming request + response time:
+  ```typescript
+  @Injectable()
+  export class LoggingInterceptor implements NestInterceptor {
+    intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+      const request = context.switchToHttp().getRequest();
+      const { method, url } = request;
+      const start = Date.now();
+
+      return next.handle().pipe(
+        tap(() => {
+          const ms = Date.now() - start;
+          this.logger.log(`${method} ${url} - ${ms}ms`);
+        }),
+      );
+    }
+  }
+  ```
+- [ ] Log ke file di production, console di development
+- [ ] **Jangan log** sensitive data: password, token, PII (nama, email, nomor telp)
+- [ ] Setup **request ID** (`x-request-id`) di setiap log untuk tracing:
+  ```bash
+  pnpm add uuid
+  ```
+  Inject `requestId` ke setiap log context via middleware
+- [ ] (opsional) Integrasikan dengan **Datadog**, **New Relic**, atau **Grafana Loki** di production
+
+---
+
+## 12. Caching
+
+- [ ] Install Redis + NestJS cache manager:
+  ```bash
+  pnpm add @nestjs/cache-manager cache-manager ioredis
+  pnpm add -D @types/cache-manager
+  ```
+- [ ] Setup `CacheModule` secara global di `app.module.ts`:
+  ```typescript
+  CacheModule.registerAsync({
+    isGlobal: true,
+    inject: [ConfigService],
+    useFactory: (config: ConfigService) => ({
+      store: new IoRedis({
+        host: config.get('redis.host'),
+        port: config.get('redis.port'),
+        password: config.get('redis.password'),
+      }),
+      ttl: 60 * 1000, // default 60 detik
+    }),
+  })
+  ```
+- [ ] Gunakan `@CacheKey()` + `@CacheTTL()` di controller untuk caching response HTTP
+- [ ] Inject `CACHE_MANAGER` di service untuk manual cache control:
+  ```typescript
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
+
+  async getCachedUser(id: string): Promise<User> {
+    const cacheKey = `user:${id}`;
+    const cached = await this.cacheManager.get<User>(cacheKey);
+    if (cached) return cached;
+    const user = await this.usersRepo.findOne({ where: { id } });
+    await this.cacheManager.set(cacheKey, user, 300_000); // 5 menit
+    return user;
+  }
+  ```
+- [ ] Buat **cache invalidation strategy** — clear cache terkait saat data diupdate/didelete
+- [ ] Buat `CacheService` abstraction agar mudah diganti implementasinya
+- [ ] Gunakan Redis juga sebagai **rate limiting store** (lihat Security section)
+- [ ] Monitor Redis memory usage — set `maxmemory-policy allkeys-lru`
+
+---
+
+## 13. Queue & Background Jobs
+
+- [ ] Install BullMQ:
+  ```bash
+  pnpm add @nestjs/bullmq bullmq ioredis
+  ```
+- [ ] Setup `BullModule` di `app.module.ts`:
+  ```typescript
+  BullModule.forRootAsync({
+    inject: [ConfigService],
+    useFactory: (config: ConfigService) => ({
+      connection: {
+        host: config.get('redis.host'),
+        port: config.get('redis.port'),
+      },
+    }),
+  })
+  ```
+- [ ] Buat queue untuk setiap domain yang butuh async processing:
+  ```
+  src/modules/
+  ├── mail/
+  │   ├── mail.processor.ts    # @Processor('mail-queue')
+  │   ├── mail.service.ts      # enqueue jobs
+  │   └── mail.module.ts
+  ```
+- [ ] Implementasi job processor:
+  ```typescript
+  @Processor('mail-queue')
+  export class MailProcessor extends WorkerHost {
+    @Process('send-welcome-email')
+    async handleWelcomeEmail(job: Job<{ userId: string }>) {
+      // implementasi kirim email
+    }
+  }
+  ```
+- [ ] Tambahkan **retry strategy** dengan exponential backoff:
+  ```typescript
+  await this.mailQueue.add('send-email', data, {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 2000 },
+    removeOnComplete: true,
+    removeOnFail: false,
+  });
+  ```
+- [ ] Setup **Bull Board** untuk monitoring queue di development:
+  ```bash
+  pnpm add @bull-board/express @bull-board/api
+  ```
+- [ ] Buat scheduled jobs menggunakan `@nestjs/schedule`:
+  ```bash
+  pnpm add @nestjs/schedule
+  ```
+  ```typescript
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async handleCleanup(): Promise<void> {
+    await this.cleanupExpiredTokens();
+  }
+  ```
+
+---
+
+## 14. File Upload & Storage
+
+- [ ] Install Multer dan AWS SDK (atau gunakan MinIO untuk self-hosted):
+  ```bash
+  pnpm add @nestjs/platform-express multer @aws-sdk/client-s3 @aws-sdk/s3-request-presigner
+  pnpm add -D @types/multer
+  ```
+- [ ] Buat `StorageModule` dengan abstraction untuk mudah ganti provider:
+  ```typescript
+  abstract class StorageService {
+    abstract upload(file: Express.Multer.File, path: string): Promise<string>;
+    abstract delete(key: string): Promise<void>;
+    abstract getSignedUrl(key: string, expiresIn: number): Promise<string>;
+  }
+  ```
+- [ ] Implementasi `S3StorageService` dan `LocalStorageService` (untuk development)
+- [ ] Validasi file di level endpoint:
+  ```typescript
+  @Post('avatar')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadAvatar(
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
+          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {}
+  ```
+- [ ] Scan file dengan antivirus (e.g. ClamAV) sebelum disimpan di production
+- [ ] Jangan ekspos path/bucket S3 langsung ke client — gunakan **signed URL** dengan expiry
+- [ ] Simpan metadata file (originalName, size, mimeType, key) ke database
+
+---
+
+## 15. Email & Notifications
+
+- [ ] Install Nodemailer + template engine:
+  ```bash
+  pnpm add nodemailer @nestjs-modules/mailer handlebars
+  pnpm add -D @types/nodemailer
+  ```
+- [ ] Setup `MailerModule`:
+  ```typescript
+  MailerModule.forRootAsync({
+    useFactory: (config: ConfigService) => ({
+      transport: {
+        host: config.get('mail.host'),
+        port: config.get('mail.port'),
+        auth: {
+          user: config.get('mail.user'),
+          pass: config.get('mail.password'),
+        },
+      },
+      defaults: { from: `"${config.get('app.name')}" <noreply@example.com>` },
+      template: {
+        dir: join(__dirname, 'templates'),
+        adapter: new HandlebarsAdapter(),
+        options: { strict: true },
+      },
+    }),
+  })
+  ```
+- [ ] Buat `MailService` yang men-queue semua pengiriman email (jangan kirim synchronous):
+  ```typescript
+  async sendWelcomeEmail(user: User): Promise<void> {
+    await this.mailQueue.add('welcome', { userId: user.id, email: user.email });
+  }
+  ```
+- [ ] Buat template email HTML yang responsive di `src/modules/mail/templates/`:
+  - `welcome.hbs` — selamat datang
+  - `reset-password.hbs` — reset password
+  - `verify-email.hbs` — verifikasi email
+- [ ] Setup **email preview** di development (gunakan [Mailpit](https://mailpit.axllent.org/) atau Mailtrap):
+  ```yaml
+  # docker-compose.yml tambahkan:
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - '1025:1025'   # SMTP
+      - '8025:8025'   # Web UI
+  ```
+- [ ] (opsional) Buat abstraction `NotificationService` yang support multiple channel:
+  - Email via SMTP / SendGrid / SES
+  - Push notification via FCM
+  - SMS via Twilio / AWS SNS
+
+---
+
+## 16. WebSocket / Real-time
+
+- [ ] Install Socket.io adapter:
+  ```bash
+  pnpm add @nestjs/websockets @nestjs/platform-socket.io socket.io
+  ```
+- [ ] Buat `EventsGateway`:
+  ```typescript
+  @WebSocketGateway({
+    cors: { origin: process.env.FRONTEND_URL, credentials: true },
+    namespace: 'events',
+  })
+  export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
+    @WebSocketServer()
+    server: Server;
+
+    handleConnection(client: Socket) {
+      // validate JWT dari handshake, disconnect jika invalid
+    }
+  }
+  ```
+- [ ] Implementasi **JWT authentication** untuk WebSocket connection:
+  ```typescript
+  // Di handleConnection, validate token dari client.handshake.auth.token
+  const token = client.handshake.auth?.token;
+  const payload = await this.jwtService.verifyAsync(token);
+  client.data.userId = payload.sub;
+  ```
+- [ ] Gunakan **rooms** untuk scope broadcast ke user/group tertentu:
+  ```typescript
+  // Saat user connect, join ke personal room
+  client.join(`user:${userId}`);
+
+  // Kirim notifikasi ke user spesifik
+  this.server.to(`user:${userId}`).emit('notification', payload);
+  ```
+- [ ] Buat `EventsModule` yang dapat digunakan di module lain untuk emit events
+- [ ] (opsional) Gunakan Redis adapter untuk mendukung **multiple instances / horizontal scaling**:
+  ```bash
+  pnpm add @socket.io/redis-adapter
+  ```
+
+---
+
+## 17. Testing Setup
+
+- [ ] Setup struktur folder test yang mirror `src/`:
+  ```
+  test/
+  ├── e2e/                          # end-to-end tests
+  │   ├── auth.e2e-spec.ts
+  │   └── users.e2e-spec.ts
+  └── helpers/
+      ├── test-database.helper.ts   # setup in-memory / test DB
+      ├── mock-factories.ts         # factory functions untuk test data
+      └── auth.helper.ts            # helper untuk generate valid JWT di test
+  ```
+- [ ] NestJS sudah include `jest` + `supertest` di default setup. Tambahkan:
+  ```bash
+  pnpm add -D @faker-js/faker jest-mock-extended
+  ```
+- [ ] Konfigurasi Jest di `jest.config.js`:
+  ```js
+  module.exports = {
+    moduleFileExtensions: ['js', 'json', 'ts'],
+    rootDir: 'src',
+    testRegex: '.*\\.spec\\.ts$',
+    transform: { '^.+\\.(t|j)s$': 'ts-jest' },
+    coverageDirectory: '../coverage',
+    collectCoverageFrom: ['**/*.(t|j)s', '!**/*.module.ts', '!**/main.ts'],
+    coverageThreshold: {
+      global: { lines: 70, functions: 70, branches: 60 },
+    },
+  };
+  ```
+- [ ] **Unit Tests** — test setiap service secara terisolasi dengan mock dependencies:
+  ```typescript
+  describe('AuthService', () => {
+    let service: AuthService;
+    let usersService: MockType<UsersService>;
+
+    beforeEach(async () => {
+      const module = await Test.createTestingModule({
+        providers: [
+          AuthService,
+          { provide: UsersService, useFactory: mockFactory },
+        ],
+      }).compile();
+      service = module.get(AuthService);
+    });
+  });
+  ```
+- [ ] **Integration Tests** — test module secara keseluruhan dengan real database (SQLite in-memory):
+  ```typescript
+  // Gunakan SQLite untuk integration test agar tidak perlu Docker
+  TypeOrmModule.forRoot({ type: 'better-sqlite3', database: ':memory:', ... })
+  ```
+- [ ] **E2E Tests** — test full HTTP request cycle dengan `supertest`:
+  ```typescript
+  describe('POST /api/v1/auth/login', () => {
+    it('should return tokens on valid credentials', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/v1/auth/login')
+        .send({ email: 'test@example.com', password: 'password123' })
+        .expect(200);
+
+      expect(response.body.data).toHaveProperty('accessToken');
+    });
+  });
+  ```
+- [ ] Buat `TestDatabaseHelper` yang setup dan teardown test database otomatis
+- [ ] Setup `jest --runInBand` untuk E2E tests agar tidak race condition
+- [ ] Tambahkan scripts di `package.json`:
+  ```json
+  "test": "jest",
+  "test:watch": "jest --watch",
+  "test:cov": "jest --coverage",
+  "test:e2e": "jest --config ./test/jest-e2e.json --runInBand"
+  ```
+- [ ] Target minimum coverage: **70%** untuk service layer, **80%** untuk critical path (auth, payment)
+
+---
+
+## 18. CI/CD Pipeline
+
+- [ ] Setup **GitHub Actions** dengan workflow berikut:
+
+  ### `ci.yml` — runs on every PR ke `develop` dan `main`
+  ```yaml
+  name: CI
+  on:
+    pull_request:
+      branches: [develop, main]
+  jobs:
+    test:
+      runs-on: ubuntu-latest
+      services:
+        postgres:
+          image: postgres:16
+          env:
+            POSTGRES_PASSWORD: secret
+            POSTGRES_DB: myapp_test
+          ports: ['5432:5432']
+      steps:
+        - uses: actions/checkout@v4
+        - uses: pnpm/action-setup@v3
+        - uses: actions/setup-node@v4
+          with: { node-version: 20, cache: 'pnpm' }
+        - run: pnpm install --frozen-lockfile
+        - run: pnpm lint
+        - run: pnpm test:cov
+        - run: pnpm test:e2e
+        - uses: codecov/codecov-action@v4
+  ```
+
+  ### `cd-staging.yml` — runs on push ke `develop`
+  ```yaml
+  - name: Build Docker image
+    run: docker build -t myapp:staging .
+  - name: Deploy to staging
+    run: # deploy ke server/ECS/Railway/Fly.io
+  - name: Run migrations
+    run: docker exec ... pnpm migration:run
+  ```
+
+  ### `cd-production.yml` — runs on push ke `main` / tag `v*`
+  ```yaml
+  - name: Build & push to registry
+  - name: Deploy to production (blue-green atau rolling)
+  - name: Run migrations
+  - name: Health check
+  - name: Notify Slack
+  ```
+
+- [ ] Simpan secrets di GitHub Secrets:
+  - `DATABASE_URL`, `JWT_SECRET`, `REDIS_URL`
+  - `DOCKER_REGISTRY_TOKEN`
+  - `DEPLOY_SSH_KEY`
+  - `SLACK_WEBHOOK_URL`
+- [ ] Buat `Dockerfile` multi-stage untuk image production yang lean:
+  ```dockerfile
+  # Build stage
+  FROM node:20-alpine AS builder
+  WORKDIR /app
+  COPY package.json pnpm-lock.yaml ./
+  RUN npm i -g pnpm && pnpm install --frozen-lockfile
+  COPY . .
+  RUN pnpm build
+
+  # Production stage
+  FROM node:20-alpine AS production
+  WORKDIR /app
+  COPY --from=builder /app/dist ./dist
+  COPY --from=builder /app/node_modules ./node_modules
+  EXPOSE 3000
+  CMD ["node", "dist/main"]
+  ```
+- [ ] Buat `.dockerignore`:
+  ```
+  node_modules
+  .git
+  .env*
+  coverage
+  dist
+  ```
+- [ ] Tambahkan Docker Compose override untuk production:
+  ```yaml
+  # docker-compose.prod.yml
+  services:
+    app:
+      image: myapp:latest
+      restart: always
+      env_file: .env.production
+  ```
+
+---
+
+## 19. Security Hardening
+
+- [ ] Install security packages:
+  ```bash
+  pnpm add helmet @nestjs/throttler
+  ```
+- [ ] Setup `helmet` di `main.ts` untuk set HTTP security headers:
+  ```typescript
+  app.use(helmet());
+  app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true }));
+  ```
+- [ ] Setup `ThrottlerModule` untuk **rate limiting**:
+  ```typescript
+  ThrottlerModule.forRoot([
+    { name: 'short', ttl: 1000, limit: 10 },    // 10 req/detik
+    { name: 'long', ttl: 60000, limit: 100 },   // 100 req/menit
+  ])
+  // Gunakan Redis store untuk multi-instance
+  ```
+- [ ] Buat rate limit yang lebih ketat di endpoint auth:
+  ```typescript
+  @Throttle({ short: { ttl: 60000, limit: 5 } })  // max 5 login attempts/menit
+  @Post('login')
+  async login() {}
+  ```
+- [ ] Setup **CORS** dengan origin whitelist:
+  ```typescript
+  app.enableCors({
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || 'http://localhost:3000',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  });
+  ```
+- [ ] Aktifkan **HTTPS only** di production — gunakan reverse proxy (Nginx/Caddy) dengan TLS
+- [ ] Implementasi **SQL Injection prevention** — gunakan parameterized queries / ORM (jangan raw SQL dengan interpolasi)
+- [ ] Implementasi **input sanitization** — strip HTML/script tags dari input teks bebas:
+  ```bash
+  pnpm add sanitize-html
+  ```
+- [ ] Aktifkan **audit logging** untuk aksi sensitif (login, password change, delete):
+  ```typescript
+  // Simpan ke tabel audit_logs: userId, action, resource, ip, userAgent, timestamp
+  ```
+- [ ] Buat `HttpsRedirectMiddleware` — redirect HTTP ke HTTPS di production
+- [ ] Setup **secrets rotation** — JWT secret, DB password harus bisa dirotate tanpa downtime
+- [ ] Review dan minimasi dependencies — jalankan `pnpm audit` secara rutin:
+  ```bash
+  pnpm audit --audit-level=high
+  ```
+- [ ] Jangan ekspos **stack trace** di production response
+- [ ] Setup **Content Security Policy (CSP)** jika backend juga serve web views
+
+---
+
+## 20. Performance Optimization
+
+- [ ] Aktifkan **compression** di `main.ts`:
+  ```bash
+  pnpm add compression
+  pnpm add -D @types/compression
+  ```
+  ```typescript
+  app.use(compression());
+  ```
+- [ ] Implementasi **database connection pooling** — konfigurasi `poolSize` di TypeORM:
+  ```typescript
+  extra: { max: 20, min: 2, idleTimeoutMillis: 30000 }
+  ```
+- [ ] Optimalkan query database:
+  - Gunakan `select` untuk hanya ambil kolom yang dibutuhkan
+  - Tambahkan **database indexes** di kolom yang sering di-query (foreign keys, email, createdAt)
+  - Hindari **N+1 queries** — gunakan `JOIN` atau `DataLoader` pattern
+  - Gunakan `.explain()` / `EXPLAIN ANALYZE` untuk profiling query lambat
+- [ ] Implementasi **pagination** di semua endpoint yang return list:
+  - Cursor-based pagination untuk feed/timeline (lebih efisien untuk dataset besar)
+  - Offset-based pagination untuk admin/backoffice (lebih intuitif)
+- [ ] Gunakan `SELECT FOR UPDATE SKIP LOCKED` untuk distributed job processing
+- [ ] Setup **database read replica** untuk query-heavy endpoints di production
+- [ ] Profile dan optimasi startup time — lazy-load module yang berat jika memungkinkan
+- [ ] Monitor memory usage — set `--max-old-space-size` sesuai container limit:
+  ```dockerfile
+  CMD ["node", "--max-old-space-size=512", "dist/main"]
+  ```
+- [ ] Setup **health check endpoint** untuk load balancer + monitoring:
+  ```bash
+  pnpm add @nestjs/terminus
+  ```
+  ```typescript
+  // GET /health → { status: 'ok', info: { database: { status: 'up' }, redis: { status: 'up' } } }
+  ```
+- [ ] Setup **graceful shutdown** — handle `SIGTERM` dengan benar:
+  ```typescript
+  app.enableShutdownHooks();
+  ```
+  Beri waktu untuk requests in-flight selesai sebelum menutup koneksi
+- [ ] Ukur dan target **response time** < 200ms untuk endpoint umum (p95)
+- [ ] Setup **APM (Application Performance Monitoring)**: Datadog, New Relic, atau OpenTelemetry
+
+---
+
+## Dependencies Summary
+
+```json
+// package.json — Production Dependencies
+{
+  "dependencies": {
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/core": "^10.0.0",
+    "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/config": "^3.0.0",
+    "joi": "^17.0.0",
+
+    "@nestjs/typeorm": "^10.0.0",
+    "typeorm": "^0.3.0",
+    "pg": "^8.0.0",
+
+    "@nestjs/jwt": "^10.0.0",
+    "@nestjs/passport": "^10.0.0",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.0",
+    "passport-local": "^1.0.0",
+    "bcrypt": "^5.0.0",
+
+    "@nestjs/swagger": "^7.0.0",
+    "swagger-ui-express": "^5.0.0",
+
+    "class-validator": "^0.14.0",
+    "class-transformer": "^0.5.0",
+
+    "@nestjs/cache-manager": "^2.0.0",
+    "cache-manager": "^5.0.0",
+    "ioredis": "^5.0.0",
+
+    "@nestjs/bullmq": "^10.0.0",
+    "bullmq": "^5.0.0",
+
+    "@nestjs/schedule": "^4.0.0",
+
+    "@nestjs-modules/mailer": "^2.0.0",
+    "nodemailer": "^6.0.0",
+    "handlebars": "^4.0.0",
+
+    "@nestjs/websockets": "^10.0.0",
+    "@nestjs/platform-socket.io": "^10.0.0",
+    "socket.io": "^4.0.0",
+
+    "@nestjs/terminus": "^10.0.0",
+    "@nestjs/throttler": "^6.0.0",
+    "helmet": "^7.0.0",
+    "compression": "^1.0.0",
+
+    "nest-winston": "^1.9.0",
+    "winston": "^3.0.0",
+    "winston-daily-rotate-file": "^5.0.0"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "^10.0.0",
+    "@types/bcrypt": "^5.0.0",
+    "@types/compression": "^1.0.0",
+    "@types/multer": "^1.0.0",
+    "@types/nodemailer": "^6.0.0",
+    "@types/passport-jwt": "^4.0.0",
+    "@types/passport-local": "^1.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "prettier": "^3.0.0",
+    "husky": "^9.0.0",
+    "lint-staged": "^15.0.0",
+    "@commitlint/cli": "^19.0.0",
+    "@commitlint/config-conventional": "^19.0.0",
+    "@faker-js/faker": "^8.0.0",
+    "jest-mock-extended": "^3.0.0",
+    "supertest": "^7.0.0"
+  }
+}
+```
+
+---
+
+## Branching Strategy
+
+```
+main          ← production code, protected branch
+develop       ← integration branch
+feature/*     ← new features (merge ke develop)
+bugfix/*      ← bug fixes (merge ke develop)
+hotfix/*      ← urgent fix (merge ke main + develop)
+release/*     ← release preparation
+```
+
+---
+
+## Definition of Done (per Feature/Module)
+
+Sebuah module dianggap selesai jika:
+
+- [ ] Unit tests untuk semua service methods lulus
+- [ ] E2E tests untuk semua endpoint lulus
+- [ ] `pnpm lint` tanpa error dan warning
+- [ ] Semua endpoint terdokumentasi di Swagger
+- [ ] Request/Response DTO lengkap dengan validasi dan Swagger decorators
+- [ ] Error cases di-handle dengan exception yang tepat (bukan throw Error generic)
+- [ ] Tidak ada hardcoded credentials / config values (semua dari `ConfigService`)
+- [ ] Migration dibuat untuk setiap perubahan skema database
+- [ ] Logging ditambahkan di titik-titik kritis (service layer, bukan controller)
+- [ ] Rate limiting diterapkan di endpoint yang publik atau sensitif
+- [ ] Sudah ditest di environment staging sebelum merge ke main
+- [ ] Code review sudah dilakukan (min. 1 reviewer)
+
+---
+
+*Last updated: March 2026*
+*Version: 1.0.0*
