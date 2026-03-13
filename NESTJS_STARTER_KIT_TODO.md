@@ -340,13 +340,12 @@ src/
 - [x] Update `prisma/schema.prisma` — sesuaikan dengan kebutuhan project:
   ```prisma
   generator client {
-    provider = "prisma-client"
-    output   = "../src/generated/prisma"
+    provider = "prisma-client-js"
   }
 
   datasource db {
     provider = "postgresql"
-    // URL dikonfigurasi via prisma.config.ts bukan di sini (Prisma 7)
+    // URL dikonfigurasi via prisma.config.ts (Prisma 7)
   }
 
   // Contoh model dengan base fields (id, createdAt, updatedAt, deletedAt)
@@ -366,22 +365,19 @@ src/
 - [x] Buat `PrismaService` di `src/database/prisma.service.ts`:
   ```typescript
   import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-  import { PrismaClient } from '../generated/prisma'; // Prisma 7: generated ke src/generated/prisma
+  import { PrismaClient } from '@prisma/client';
 
   @Injectable()
   export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
     async onModuleInit(): Promise<void> {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       await this.$connect();
     }
 
     async onModuleDestroy(): Promise<void> {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       await this.$disconnect();
     }
   }
   ```
-  > Prisma 7 menggunakan `// @ts-nocheck` di semua file generated — eslint-disable diperlukan untuk `$connect`/`$disconnect`.
 - [x] Buat `PrismaModule` di `src/database/prisma.module.ts` — `@Global()` agar bisa di-inject tanpa import ulang:
   ```typescript
   import { Global, Module } from '@nestjs/common';
