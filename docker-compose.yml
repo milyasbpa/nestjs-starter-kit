@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: secret
       POSTGRES_DB: myapp_dev
     ports:
-      - '5432:5432'
+      - '5433:5432' # Port 5433 digunakan untuk menghindari konflik dengan PostgreSQL lokal di port 5432
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

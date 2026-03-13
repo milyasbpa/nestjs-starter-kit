@@ -413,7 +413,7 @@ src/
   volumes:
     postgres_data:
   ```
-- [ ] Jalankan Docker Compose untuk local development:
+- [x] Jalankan Docker Compose untuk local development:
   ```bash
   docker-compose up -d
   ```
@@ -426,7 +426,7 @@ src/
 >
 > **Catatan:** Seeder (admin user) **tidak dibuat di step ini** — field `role` belum ada di schema dan `bcrypt` belum terinstall. Seeder ditambahkan di Step 7 setelah RBAC dan bcrypt tersedia.
 
-- [ ] Jalankan Docker Compose jika belum berjalan:
+- [x] Jalankan Docker Compose jika belum berjalan:
   ```bash
   docker-compose up -d
   ```
@@ -438,12 +438,12 @@ src/
   "migration:status": "prisma migrate status",
   "prisma:generate": "prisma generate"
   ```
-- [ ] Jalankan migration pertama (setelah model didefinisikan di `schema.prisma`):
+- [x] Jalankan migration pertama (setelah model didefinisikan di `schema.prisma`):
   ```bash
   npx prisma migrate dev --name init
   ```
   Perintah ini: membuat file migration di `prisma/migrations/`, menjalankan migration ke database, dan meng-generate ulang Prisma Client.
-- [ ] Commit file migration ke git — file di `prisma/migrations/` harus masuk version control
+- [x] Commit file migration ke git — file di `prisma/migrations/` harus masuk version control
 - [ ] **Jangan gunakan `prisma db push` di staging/production** — selalu gunakan `prisma migrate deploy`:
   ```bash
   # Staging / Production
