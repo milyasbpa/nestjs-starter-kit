@@ -107,14 +107,14 @@ src/
 │   └── config.module.ts    # root ConfigModule setup
 │
 ├── database/
-│   ├── migrations/         # TypeORM/Prisma migration files
+│   ├── migrations/         # Prisma migration files
 │   ├── seeds/              # seed scripts per entity
 │   └── database.module.ts  # DatabaseModule setup
 │
 ├── modules/
 │   └── [feature]/
 │       ├── dto/            # CreateFeatureDto, UpdateFeatureDto, ResponseFeatureDto
-│       ├── entities/       # TypeORM entity / Prisma model definition
+│       ├── entities/       # Prisma model definition (referensi ke schema.prisma)
 │       ├── [feature].controller.ts
 │       ├── [feature].service.ts
 │       ├── [feature].repository.ts   # (opsional, jika memakai Repository Pattern)
@@ -314,73 +314,84 @@ src/
   ```json
   "start:dev": "NODE_ENV=development nest start --watch",
   "start:staging": "NODE_ENV=staging node dist/main",
-  "start:prod": "NODE_ENV=production node dist/main",
-  "migration:run": "npm run typeorm -- migration:run -d src/database/data-source.ts",
-  "seed": "ts-node -r tsconfig-paths/register src/database/seeds/run-seed.ts"
+  "start:prod": "NODE_ENV=production node dist/main"
   ```
+  > Scripts untuk migration dan seed ditambahkan di Step 6 setelah Prisma di-setup.
 
 ---
 
 ## 5. Database & ORM
 
-Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih mature di NestJS).
-> Dokumen ini menggunakan **TypeORM** sebagai default. Ganti dengan Prisma jika diinginkan.
+> Dokumen ini menggunakan **Prisma** sebagai ORM — type-safe, auto-generated client, DX yang lebih baik, dan aktif di-maintain.
 
 - [ ] Install dependencies:
   ```bash
-  npm install @nestjs/typeorm typeorm pg
-  # Untuk MySQL: npm install mysql2
-  # Untuk SQLite (dev/test): npm install better-sqlite3
+  npm install prisma @prisma/client
   ```
-- [ ] Buat `src/config/database.config.ts`:
-  ```typescript
-  export const databaseConfig = registerAs('database', () => ({
-    type: 'postgres' as const,
-    host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT, 10),
-    username: process.env.DB_USERNAME,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-    migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],
-    synchronize: process.env.NODE_ENV === 'development', // NEVER true in production
-    logging: process.env.NODE_ENV === 'development',
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  }));
+- [ ] Inisialisasi Prisma:
+  ```bash
+  npx prisma init --datasource-provider postgresql
   ```
-- [ ] Buat `src/database/database.module.ts`:
-  ```typescript
-  @Module({
-    imports: [
-      TypeOrmModule.forRootAsync({
-        inject: [ConfigService],
-        useFactory: (config: ConfigService) => config.get('database'),
-      }),
-    ],
-  })
-  export class DatabaseModule {}
+  Perintah ini membuat `prisma/schema.prisma` dan menambahkan `DATABASE_URL` ke `.env`.
+- [ ] Update `.env.example` — tambahkan `DATABASE_URL` dan hapus variabel DB terpisah:
+  ```env
+  DATABASE_URL=postgresql://postgres:secret@localhost:5432/myapp_dev?schema=public
   ```
-- [ ] Buat base entity `src/common/entities/base.entity.ts`:
-  ```typescript
-  export abstract class BaseEntity {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+- [ ] Update `prisma/schema.prisma` — sesuaikan dengan kebutuhan project:
+  ```prisma
+  generator client {
+    provider = "prisma-client-js"
+  }
 
-    @CreateDateColumn()
-    createdAt: Date;
+  datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+  }
 
-    @UpdateDateColumn()
-    updatedAt: Date;
+  // Contoh model dengan base fields (id, createdAt, updatedAt, deletedAt)
+  model User {
+    id        String    @id @default(uuid())
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+    deletedAt DateTime? // soft delete
 
-    @DeleteDateColumn()
-    deletedAt: Date | null; // soft delete
+    email    String @unique
+    password String
   }
   ```
-- [ ] Setup **Repository Pattern** — buat custom repository untuk setiap entity agar mudah di-mock saat testing
-- [ ] Setup Docker Compose untuk development:
+  > Prisma tidak mendukung abstract base model — field `id`, `createdAt`, `updatedAt`, `deletedAt` ditambahkan manual ke setiap model. Gunakan snippet atau tools generator untuk mempercepat.
+- [ ] Buat `PrismaService` di `src/database/prisma.service.ts`:
+  ```typescript
+  import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+  import { PrismaClient } from '@prisma/client';
+
+  @Injectable()
+  export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+    async onModuleInit(): Promise<void> {
+      await this.$connect();
+    }
+
+    async onModuleDestroy(): Promise<void> {
+      await this.$disconnect();
+    }
+  }
+  ```
+- [ ] Buat `PrismaModule` di `src/database/prisma.module.ts` — `@Global()` agar bisa di-inject tanpa import ulang:
+  ```typescript
+  import { Global, Module } from '@nestjs/common';
+  import { PrismaService } from './prisma.service';
+
+  @Global()
+  @Module({
+    providers: [PrismaService],
+    exports: [PrismaService],
+  })
+  export class PrismaModule {}
+  ```
+- [ ] Import `PrismaModule` di `AppModule`
+- [ ] Setup Docker Compose untuk development (Postgres only — Redis ditambahkan di Step 12 saat dibutuhkan):
   ```yaml
   # docker-compose.yml
-  version: '3.8'
   services:
     postgres:
       image: postgres:16-alpine
@@ -392,11 +403,6 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
         - '5432:5432'
       volumes:
         - postgres_data:/var/lib/postgresql/data
-
-    redis:
-      image: redis:7-alpine
-      ports:
-        - '6379:6379'
 
   volumes:
     postgres_data:
@@ -410,45 +416,64 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
 
 ## 6. Migrations & Seeding
 
-- [ ] Buat `src/database/data-source.ts` untuk TypeORM CLI:
-  ```typescript
-  import { DataSource } from 'typeorm';
-  import * as dotenv from 'dotenv';
+> Prisma memiliki migration system built-in via `prisma migrate`. Tidak perlu `data-source.ts` terpisah.
 
-  dotenv.config({ path: `.env.${process.env.NODE_ENV || 'development'}` });
-
-  export const AppDataSource = new DataSource({
-    type: 'postgres',
-    host: process.env.DB_HOST,
-    // ... config sama seperti di database.config.ts
-    entities: ['src/**/*.entity.ts'],
-    migrations: ['src/database/migrations/*.ts'],
-  });
+- [ ] Jalankan migration pertama (setelah model didefinisikan di `schema.prisma`):
+  ```bash
+  npx prisma migrate dev --name init
   ```
-- [ ] Tambahkan scripts TypeORM di `package.json`:
+  Perintah ini: membuat file migration di `prisma/migrations/`, menjalankan migration ke database, dan meng-generate ulang Prisma Client.
+- [ ] Commit file migration ke git — file di `prisma/migrations/` harus masuk version control
+- [ ] **Jangan gunakan `prisma db push` di staging/production** — selalu gunakan `prisma migrate deploy`:
+  ```bash
+  # Staging / Production
+  npx prisma migrate deploy
+  ```
+- [ ] Tambahkan scripts Prisma di `package.json`:
   ```json
-  "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli",
-  "migration:generate": "npm run typeorm -- migration:generate -d src/database/data-source.ts",
-  "migration:run": "npm run typeorm -- migration:run -d src/database/data-source.ts",
-  "migration:revert": "npm run typeorm -- migration:revert -d src/database/data-source.ts",
-  "migration:show": "npm run typeorm -- migration:show -d src/database/data-source.ts"
+  "migration:dev": "prisma migrate dev",
+  "migration:deploy": "prisma migrate deploy",
+  "migration:reset": "prisma migrate reset",
+  "migration:status": "prisma migrate status",
+  "prisma:generate": "prisma generate",
+  "seed": "ts-node -r tsconfig-paths/register prisma/seed.ts"
   ```
-- [ ] **Jangan gunakan `synchronize: true` di staging/production** — selalu gunakan migration
-- [ ] Buat base seeder interface `src/database/seeds/seeder.interface.ts`:
-  ```typescript
-  export interface Seeder {
-    run(dataSource: DataSource): Promise<void>;
+- [ ] Tambahkan `prisma.seed` config di `package.json` agar `prisma db seed` bekerja:
+  ```json
+  "prisma": {
+    "seed": "ts-node -r tsconfig-paths/register prisma/seed.ts"
   }
   ```
-- [ ] Buat seeder runner `src/database/seeds/run-seed.ts` yang mengeksekusi semua seeder secara berurutan
-- [ ] Buat seed minimal: `UserSeeder` (admin account) untuk fresh environment
+- [ ] Buat seeder di `prisma/seed.ts`:
+  ```typescript
+  import { PrismaClient } from '@prisma/client';
+
+  const prisma = new PrismaClient();
+
+  async function main(): Promise<void> {
+    // Upsert agar idempoten — aman dijalankan berkali-kali
+    await prisma.user.upsert({
+      where: { email: 'admin@example.com' },
+      update: {},
+      create: {
+        email: 'admin@example.com',
+        password: '$2b$12$...', // bcrypt hash — generate dengan: bcrypt.hash('admin123', 12)
+      },
+    });
+    console.log('Seed complete');
+  }
+
+  main()
+    .catch(console.error)
+    .finally(() => prisma.$disconnect());
+  ```
 - [ ] Gunakan `faker.js` untuk generate data development:
   ```bash
   npm install -D @faker-js/faker
   ```
-- [ ] Tambahkan `seed` script di `package.json`:
-  ```json
-  "seed": "ts-node -r tsconfig-paths/register src/database/seeds/run-seed.ts"
+- [ ] Jalankan seeder:
+  ```bash
+  npx prisma db seed
   ```
 
 ---
@@ -711,7 +736,9 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
   ```typescript
   app.useGlobalFilters(new GlobalExceptionFilter());
   ```
-- [ ] Handle **TypeORM errors** di dalam filter (e.g. `QueryFailedError` code `23505` → duplicate key)
+- [ ] Handle **Prisma errors** di dalam filter — tangkap `PrismaClientKnownRequestError` dengan codes:
+  - `P2002` → unique constraint violation (duplicate key) → `409 Conflict`
+  - `P2025` → record not found → `404 Not Found`
 - [ ] Handle **ValidationPipe errors** agar format response konsisten dengan error lainnya
 - [ ] Buat `src/common/constants/error-codes.constants.ts` — centralized error code registry
 
@@ -1067,10 +1094,12 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
     });
   });
   ```
-- [ ] **Integration Tests** — test module secara keseluruhan dengan real database (SQLite in-memory):
+- [ ] **Integration Tests** — test module secara keseluruhan dengan real database:
   ```typescript
-  // Gunakan SQLite untuk integration test agar tidak perlu Docker
-  TypeOrmModule.forRoot({ type: 'better-sqlite3', database: ':memory:', ... })
+  // Gunakan test database terpisah atau Docker Compose test service
+  // Prisma tidak mendukung SQLite in-memory untuk PostgreSQL schema
+  // Setup: DATABASE_URL=postgresql://...myapp_test di environment test
+  beforeAll(async () => { await prisma.$executeRaw`TRUNCATE ...`; });
   ```
 - [ ] **E2E Tests** — test full HTTP request cycle dengan `supertest`:
   ```typescript
@@ -1257,9 +1286,9 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
   ```typescript
   app.use(compression());
   ```
-- [ ] Implementasi **database connection pooling** — konfigurasi `poolSize` di TypeORM:
-  ```typescript
-  extra: { max: 20, min: 2, idleTimeoutMillis: 30000 }
+- [ ] Implementasi **database connection pooling** — konfigurasi via `DATABASE_URL` Prisma:
+  ```env
+  DATABASE_URL=postgresql://user:pass@localhost:5432/db?connection_limit=20&pool_timeout=30
   ```
 - [ ] Optimalkan query database:
   - Gunakan `select` untuk hanya ambil kolom yang dibutuhkan
@@ -1305,9 +1334,8 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
     "@nestjs/config": "^3.0.0",
     "zod": "^3.0.0",
 
-    "@nestjs/typeorm": "^10.0.0",
-    "typeorm": "^0.3.0",
-    "pg": "^8.0.0",
+    "@prisma/client": "^5.0.0",
+    "prisma": "^5.0.0",
 
     "@nestjs/jwt": "^10.0.0",
     "@nestjs/passport": "^10.0.0",
