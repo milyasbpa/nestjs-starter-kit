@@ -790,11 +790,11 @@ src/
 
 ## 11. Logging
 
-- [ ] Install `winston` + NestJS winston transport:
+- [x] Install `winston` + NestJS winston transport:
   ```bash
   npm install nest-winston winston winston-daily-rotate-file
   ```
-- [ ] Setup `WinstonModule` di `app.module.ts`:
+- [x] Setup `WinstonModule` di `app.module.ts`:
   ```typescript
   WinstonModule.forRoot({
     transports: [
@@ -820,7 +820,7 @@ src/
     ],
   })
   ```
-- [ ] Buat `LoggingInterceptor` untuk log setiap incoming request + response time:
+- [x] Buat `LoggingInterceptor` untuk log setiap incoming request + response time:
   ```typescript
   @Injectable()
   export class LoggingInterceptor implements NestInterceptor {
@@ -838,14 +838,9 @@ src/
     }
   }
   ```
-- [ ] Log ke file di production, console di development
-- [ ] **Jangan log** sensitive data: password, token, PII (nama, email, nomor telp)
-- [ ] Setup **request ID** (`x-request-id`) di setiap log untuk tracing:
-  ```bash
-  npm install uuid
-  ```
-  Inject `requestId` ke setiap log context via middleware
-- [ ] (opsional) Integrasikan dengan **Datadog**, **New Relic**, atau **Grafana Loki** di production
+- [x] Log ke file di production, console di development
+- [x] **Jangan log** sensitive data: password, token, PII (nama, email, nomor telp)
+- [ ] Setup **request ID** (`x-request-id`) di setiap log untuk tracing (opsional, ditambahkan jika dibutuhkan)
 
 ---
 
