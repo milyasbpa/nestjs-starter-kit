@@ -324,59 +324,65 @@ src/
 
 > Dokumen ini menggunakan **Prisma** sebagai ORM — type-safe, auto-generated client, DX yang lebih baik, dan aktif di-maintain.
 
-- [ ] Install dependencies:
+- [x] Install dependencies:
   ```bash
   npm install prisma @prisma/client
   ```
-- [ ] Inisialisasi Prisma:
+- [x] Inisialisasi Prisma:
   ```bash
   npx prisma init --datasource-provider postgresql
   ```
-  Perintah ini membuat `prisma/schema.prisma` dan menambahkan `DATABASE_URL` ke `.env`.
-- [ ] Update `.env.example` — tambahkan `DATABASE_URL` dan hapus variabel DB terpisah:
+  Perintah ini membuat `prisma/schema.prisma`, `prisma.config.ts` (Prisma 7), dan `.env` dengan `DATABASE_URL`.
+- [x] Update `.env.example` — tambahkan `DATABASE_URL` dan hapus variabel DB terpisah:
   ```env
   DATABASE_URL=postgresql://postgres:secret@localhost:5432/myapp_dev?schema=public
   ```
-- [ ] Update `prisma/schema.prisma` — sesuaikan dengan kebutuhan project:
+- [x] Update `prisma/schema.prisma` — sesuaikan dengan kebutuhan project:
   ```prisma
   generator client {
-    provider = "prisma-client-js"
+    provider = "prisma-client"
+    output   = "../src/generated/prisma"
   }
 
   datasource db {
     provider = "postgresql"
-    url      = env("DATABASE_URL")
+    // URL dikonfigurasi via prisma.config.ts bukan di sini (Prisma 7)
   }
 
   // Contoh model dengan base fields (id, createdAt, updatedAt, deletedAt)
   model User {
-    id        String    @id @default(uuid())
+    id        String    @id @default(uuid()) @db.Uuid
     createdAt DateTime  @default(now())
     updatedAt DateTime  @updatedAt
     deletedAt DateTime? // soft delete
 
     email    String @unique
     password String
+
+    @@map("users")
   }
   ```
   > Prisma tidak mendukung abstract base model — field `id`, `createdAt`, `updatedAt`, `deletedAt` ditambahkan manual ke setiap model. Gunakan snippet atau tools generator untuk mempercepat.
-- [ ] Buat `PrismaService` di `src/database/prisma.service.ts`:
+- [x] Buat `PrismaService` di `src/database/prisma.service.ts`:
   ```typescript
   import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-  import { PrismaClient } from '@prisma/client';
+  import { PrismaClient } from '../generated/prisma'; // Prisma 7: generated ke src/generated/prisma
 
   @Injectable()
   export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
     async onModuleInit(): Promise<void> {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       await this.$connect();
     }
 
     async onModuleDestroy(): Promise<void> {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       await this.$disconnect();
     }
   }
   ```
-- [ ] Buat `PrismaModule` di `src/database/prisma.module.ts` — `@Global()` agar bisa di-inject tanpa import ulang:
+  > Prisma 7 menggunakan `// @ts-nocheck` di semua file generated — eslint-disable diperlukan untuk `$connect`/`$disconnect`.
+- [x] Buat `PrismaModule` di `src/database/prisma.module.ts` — `@Global()` agar bisa di-inject tanpa import ulang:
   ```typescript
   import { Global, Module } from '@nestjs/common';
   import { PrismaService } from './prisma.service';
@@ -388,8 +394,12 @@ src/
   })
   export class PrismaModule {}
   ```
-- [ ] Import `PrismaModule` di `AppModule`
-- [ ] Setup Docker Compose untuk development (Postgres only — Redis ditambahkan di Step 12 saat dibutuhkan):
+- [x] Import `PrismaModule` di `AppModule`
+- [x] Tambahkan `postinstall` script di `package.json` agar client otomatis di-generate setelah `npm install`:
+  ```json
+  "postinstall": "prisma generate"
+  ```
+- [x] Setup Docker Compose untuk development (Postgres only — Redis ditambahkan di Step 12 saat dibutuhkan):
   ```yaml
   # docker-compose.yml
   services:

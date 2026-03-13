@@ -3,6 +3,9 @@
 .env.*
 !.env.example
 
+# Prisma generated client
+src/generated/
+
 # Build output
 dist/
 
@@ -24,3 +27,5 @@ logs/
 .vscode/
 *.swp
 *.swo
+
+/generated/prisma
