@@ -35,14 +35,13 @@
 - [ ] Install NestJS CLI dan buat project baru:
   ```bash
   npm i -g @nestjs/cli
-  nest new project-name --package-manager pnpm
+  nest new project-name --package-manager npm
   ```
-- [ ] Pilih `pnpm` sebagai package manager (lebih efisien dari npm/yarn)
 - [ ] Set `engines` di `package.json` untuk lock versi Node.js minimum:
   ```json
   "engines": {
     "node": ">=20.0.0",
-    "pnpm": ">=9.0.0"
+    "npm": ">=10.0.0"
   }
   ```
 - [ ] Update `package.json`: set `name`, `description`, `version` (e.g. `1.0.0`)
@@ -154,7 +153,7 @@ src/
 
 - [ ] Install dan konfigurasi ESLint + Prettier:
   ```bash
-  pnpm add -D eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin \
+  npm install -D eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin \
     prettier eslint-config-prettier eslint-plugin-prettier \
     eslint-plugin-import
   ```
@@ -191,7 +190,7 @@ src/
   ```
 - [ ] Install `husky` + `lint-staged` untuk pre-commit hook:
   ```bash
-  pnpm add -D husky lint-staged
+  npm install -D husky lint-staged
   npx husky init
   ```
 - [ ] Konfigurasi `lint-staged` di `package.json`:
@@ -206,7 +205,7 @@ src/
   ```
 - [ ] (opsional) Setup `commitlint` untuk enforce Conventional Commits:
   ```bash
-  pnpm add -D @commitlint/cli @commitlint/config-conventional
+  npm install -D @commitlint/cli @commitlint/config-conventional
   echo "module.exports = { extends: ['@commitlint/config-conventional'] };" > commitlint.config.js
   ```
 
@@ -216,7 +215,7 @@ src/
 
 - [ ] Install `@nestjs/config` dan `joi` untuk validasi env:
   ```bash
-  pnpm add @nestjs/config joi
+  npm install @nestjs/config joi
   ```
 - [ ] Buat file `.env.development`, `.env.staging`, `.env.production` (jangan di-commit), dan `.env.example` sebagai reference yang di-commit
 - [ ] Isi `.env.example`:
@@ -285,15 +284,15 @@ src/
 - [ ] Buat `Makefile` untuk perintah yang sering digunakan:
   ```makefile
   dev:
-    NODE_ENV=development pnpm start:dev
+    NODE_ENV=development npm run start:dev
   staging:
-    NODE_ENV=staging pnpm start
+    NODE_ENV=staging npm start
   prod:
-    NODE_ENV=production pnpm start:prod
+    NODE_ENV=production npm run start:prod
   migrate:
-    pnpm typeorm migration:run
+    npm run migration:run
   seed:
-    pnpm ts-node src/database/seeds/run-seed.ts
+    npm run seed
   ```
 
 ---
@@ -305,9 +304,9 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
 
 - [ ] Install dependencies:
   ```bash
-  pnpm add @nestjs/typeorm typeorm pg
-  # Untuk MySQL: pnpm add mysql2
-  # Untuk SQLite (dev/test): pnpm add better-sqlite3
+  npm install @nestjs/typeorm typeorm pg
+  # Untuk MySQL: npm install mysql2
+  # Untuk SQLite (dev/test): npm install better-sqlite3
   ```
 - [ ] Buat `src/config/database.config.ts`:
   ```typescript
@@ -405,10 +404,10 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
 - [ ] Tambahkan scripts TypeORM di `package.json`:
   ```json
   "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli",
-  "migration:generate": "pnpm typeorm -- migration:generate -d src/database/data-source.ts",
-  "migration:run": "pnpm typeorm -- migration:run -d src/database/data-source.ts",
-  "migration:revert": "pnpm typeorm -- migration:revert -d src/database/data-source.ts",
-  "migration:show": "pnpm typeorm -- migration:show -d src/database/data-source.ts"
+  "migration:generate": "npm run typeorm -- migration:generate -d src/database/data-source.ts",
+  "migration:run": "npm run typeorm -- migration:run -d src/database/data-source.ts",
+  "migration:revert": "npm run typeorm -- migration:revert -d src/database/data-source.ts",
+  "migration:show": "npm run typeorm -- migration:show -d src/database/data-source.ts"
   ```
 - [ ] **Jangan gunakan `synchronize: true` di staging/production** — selalu gunakan migration
 - [ ] Buat base seeder interface `src/database/seeds/seeder.interface.ts`:
@@ -421,7 +420,7 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
 - [ ] Buat seed minimal: `UserSeeder` (admin account) untuk fresh environment
 - [ ] Gunakan `faker.js` untuk generate data development:
   ```bash
-  pnpm add -D @faker-js/faker
+  npm install -D @faker-js/faker
   ```
 - [ ] Tambahkan `seed` script di `package.json`:
   ```json
@@ -434,8 +433,8 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
 
 - [ ] Install dependencies:
   ```bash
-  pnpm add @nestjs/jwt @nestjs/passport passport passport-jwt passport-local bcrypt
-  pnpm add -D @types/passport-jwt @types/passport-local @types/bcrypt
+  npm install @nestjs/jwt @nestjs/passport passport passport-jwt passport-local bcrypt
+  npm install -D @types/passport-jwt @types/passport-local @types/bcrypt
   ```
 - [ ] Buat `AuthModule` dengan struktur lengkap:
   ```
@@ -515,7 +514,7 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
 
 - [ ] Install Swagger:
   ```bash
-  pnpm add @nestjs/swagger swagger-ui-express
+  npm install @nestjs/swagger swagger-ui-express
   ```
 - [ ] Setup Swagger di `main.ts` — **hanya aktif di non-production**:
   ```typescript
@@ -580,7 +579,7 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
 
 - [ ] Install `class-validator` dan `class-transformer`:
   ```bash
-  pnpm add class-validator class-transformer
+  npm install class-validator class-transformer
   ```
 - [ ] Setup `ValidationPipe` secara global di `main.ts`:
   ```typescript
@@ -698,7 +697,7 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
 
 - [ ] Install `winston` + NestJS winston transport:
   ```bash
-  pnpm add nest-winston winston winston-daily-rotate-file
+  npm install nest-winston winston winston-daily-rotate-file
   ```
 - [ ] Setup `WinstonModule` di `app.module.ts`:
   ```typescript
@@ -748,7 +747,7 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
 - [ ] **Jangan log** sensitive data: password, token, PII (nama, email, nomor telp)
 - [ ] Setup **request ID** (`x-request-id`) di setiap log untuk tracing:
   ```bash
-  pnpm add uuid
+  npm install uuid
   ```
   Inject `requestId` ke setiap log context via middleware
 - [ ] (opsional) Integrasikan dengan **Datadog**, **New Relic**, atau **Grafana Loki** di production
@@ -759,8 +758,8 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
 
 - [ ] Install Redis + NestJS cache manager:
   ```bash
-  pnpm add @nestjs/cache-manager cache-manager ioredis
-  pnpm add -D @types/cache-manager
+  npm install @nestjs/cache-manager cache-manager ioredis
+  npm install -D @types/cache-manager
   ```
 - [ ] Setup `CacheModule` secara global di `app.module.ts`:
   ```typescript
@@ -802,7 +801,7 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
 
 - [ ] Install BullMQ:
   ```bash
-  pnpm add @nestjs/bullmq bullmq ioredis
+  npm install @nestjs/bullmq bullmq ioredis
   ```
 - [ ] Setup `BullModule` di `app.module.ts`:
   ```typescript
@@ -845,11 +844,11 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
   ```
 - [ ] Setup **Bull Board** untuk monitoring queue di development:
   ```bash
-  pnpm add @bull-board/express @bull-board/api
+  npm install @bull-board/express @bull-board/api
   ```
 - [ ] Buat scheduled jobs menggunakan `@nestjs/schedule`:
   ```bash
-  pnpm add @nestjs/schedule
+  npm install @nestjs/schedule
   ```
   ```typescript
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
@@ -864,8 +863,8 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
 
 - [ ] Install Multer dan AWS SDK (atau gunakan MinIO untuk self-hosted):
   ```bash
-  pnpm add @nestjs/platform-express multer @aws-sdk/client-s3 @aws-sdk/s3-request-presigner
-  pnpm add -D @types/multer
+  npm install @nestjs/platform-express multer @aws-sdk/client-s3 @aws-sdk/s3-request-presigner
+  npm install -D @types/multer
   ```
 - [ ] Buat `StorageModule` dengan abstraction untuk mudah ganti provider:
   ```typescript
@@ -902,8 +901,8 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
 
 - [ ] Install Nodemailer + template engine:
   ```bash
-  pnpm add nodemailer @nestjs-modules/mailer handlebars
-  pnpm add -D @types/nodemailer
+  npm install nodemailer @nestjs-modules/mailer handlebars
+  npm install -D @types/nodemailer
   ```
 - [ ] Setup `MailerModule`:
   ```typescript
@@ -956,7 +955,7 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
 
 - [ ] Install Socket.io adapter:
   ```bash
-  pnpm add @nestjs/websockets @nestjs/platform-socket.io socket.io
+  npm install @nestjs/websockets @nestjs/platform-socket.io socket.io
   ```
 - [ ] Buat `EventsGateway`:
   ```typescript
@@ -991,7 +990,7 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
 - [ ] Buat `EventsModule` yang dapat digunakan di module lain untuk emit events
 - [ ] (opsional) Gunakan Redis adapter untuk mendukung **multiple instances / horizontal scaling**:
   ```bash
-  pnpm add @socket.io/redis-adapter
+  npm install @socket.io/redis-adapter
   ```
 
 ---
@@ -1011,7 +1010,7 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
   ```
 - [ ] NestJS sudah include `jest` + `supertest` di default setup. Tambahkan:
   ```bash
-  pnpm add -D @faker-js/faker jest-mock-extended
+  npm install -D @faker-js/faker jest-mock-extended
   ```
 - [ ] Konfigurasi Jest di `jest.config.js`:
   ```js
@@ -1071,6 +1070,7 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
   "test:cov": "jest --coverage",
   "test:e2e": "jest --config ./test/jest-e2e.json --runInBand"
   ```
+  > Jalankan dengan: `npm test`, `npm run test:cov`, `npm run test:e2e`
 - [ ] Target minimum coverage: **70%** untuk service layer, **80%** untuk critical path (auth, payment)
 
 ---
@@ -1097,13 +1097,12 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
           ports: ['5432:5432']
       steps:
         - uses: actions/checkout@v4
-        - uses: pnpm/action-setup@v3
         - uses: actions/setup-node@v4
-          with: { node-version: 20, cache: 'pnpm' }
-        - run: pnpm install --frozen-lockfile
-        - run: pnpm lint
-        - run: pnpm test:cov
-        - run: pnpm test:e2e
+          with: { node-version: 20, cache: 'npm' }
+        - run: npm ci
+        - run: npm run lint
+        - run: npm run test:cov
+        - run: npm run test:e2e
         - uses: codecov/codecov-action@v4
   ```
 
@@ -1114,7 +1113,7 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
   - name: Deploy to staging
     run: # deploy ke server/ECS/Railway/Fly.io
   - name: Run migrations
-    run: docker exec ... pnpm migration:run
+    run: docker exec ... npm run migration:run
   ```
 
   ### `cd-production.yml` — runs on push ke `main` / tag `v*`
@@ -1136,10 +1135,10 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
   # Build stage
   FROM node:20-alpine AS builder
   WORKDIR /app
-  COPY package.json pnpm-lock.yaml ./
-  RUN npm i -g pnpm && pnpm install --frozen-lockfile
+  COPY package*.json ./
+  RUN npm ci
   COPY . .
-  RUN pnpm build
+  RUN npm run build
 
   # Production stage
   FROM node:20-alpine AS production
@@ -1156,6 +1155,7 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
   .env*
   coverage
   dist
+  npm-debug.log*
   ```
 - [ ] Tambahkan Docker Compose override untuk production:
   ```yaml
@@ -1173,7 +1173,7 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
 
 - [ ] Install security packages:
   ```bash
-  pnpm add helmet @nestjs/throttler
+  npm install helmet @nestjs/throttler
   ```
 - [ ] Setup `helmet` di `main.ts` untuk set HTTP security headers:
   ```typescript
@@ -1206,7 +1206,7 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
 - [ ] Implementasi **SQL Injection prevention** — gunakan parameterized queries / ORM (jangan raw SQL dengan interpolasi)
 - [ ] Implementasi **input sanitization** — strip HTML/script tags dari input teks bebas:
   ```bash
-  pnpm add sanitize-html
+  npm install sanitize-html
   ```
 - [ ] Aktifkan **audit logging** untuk aksi sensitif (login, password change, delete):
   ```typescript
@@ -1214,9 +1214,9 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
   ```
 - [ ] Buat `HttpsRedirectMiddleware` — redirect HTTP ke HTTPS di production
 - [ ] Setup **secrets rotation** — JWT secret, DB password harus bisa dirotate tanpa downtime
-- [ ] Review dan minimasi dependencies — jalankan `pnpm audit` secara rutin:
+- [ ] Review dan minimasi dependencies — jalankan `npm audit` secara rutin:
   ```bash
-  pnpm audit --audit-level=high
+  npm audit --audit-level=high
   ```
 - [ ] Jangan ekspos **stack trace** di production response
 - [ ] Setup **Content Security Policy (CSP)** jika backend juga serve web views
@@ -1227,8 +1227,8 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
 
 - [ ] Aktifkan **compression** di `main.ts`:
   ```bash
-  pnpm add compression
-  pnpm add -D @types/compression
+  npm install compression
+  npm install -D @types/compression
   ```
   ```typescript
   app.use(compression());
@@ -1254,7 +1254,7 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
   ```
 - [ ] Setup **health check endpoint** untuk load balancer + monitoring:
   ```bash
-  pnpm add @nestjs/terminus
+  npm install @nestjs/terminus
   ```
   ```typescript
   // GET /health → { status: 'ok', info: { database: { status: 'up' }, redis: { status: 'up' } } }
@@ -1370,7 +1370,7 @@ Sebuah module dianggap selesai jika:
 
 - [ ] Unit tests untuk semua service methods lulus
 - [ ] E2E tests untuk semua endpoint lulus
-- [ ] `pnpm lint` tanpa error dan warning
+- [ ] `npm run lint` tanpa error dan warning
 - [ ] Semua endpoint terdokumentasi di Swagger
 - [ ] Request/Response DTO lengkap dengan validasi dan Swagger decorators
 - [ ] Error cases di-handle dengan exception yang tepat (bukan throw Error generic)
