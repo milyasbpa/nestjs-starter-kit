@@ -12,7 +12,7 @@
 3. [Code Quality & Linting](#3-code-quality--linting)
 4. [Environment Configuration](#4-environment-configuration)
 5. [Database & ORM](#5-database--orm)
-6. [Migrations & Seeding](#6-migrations--seeding)
+6. [Migrations](#6-migrations)
 7. [Authentication & Authorization](#7-authentication--authorization)
 8. [API Design & Swagger](#8-api-design--swagger)
 9. [Validation & Transformation](#9-validation--transformation)
@@ -420,10 +420,24 @@ src/
 
 ---
 
-## 6. Migrations & Seeding
+## 6. Migrations
 
 > Prisma memiliki migration system built-in via `prisma migrate`. Tidak perlu `data-source.ts` terpisah.
+>
+> **Catatan:** Seeder (admin user) **tidak dibuat di step ini** — field `role` belum ada di schema dan `bcrypt` belum terinstall. Seeder ditambahkan di Step 7 setelah RBAC dan bcrypt tersedia.
 
+- [ ] Jalankan Docker Compose jika belum berjalan:
+  ```bash
+  docker-compose up -d
+  ```
+- [x] Tambahkan scripts Prisma di `package.json`:
+  ```json
+  "migration:dev": "prisma migrate dev",
+  "migration:deploy": "prisma migrate deploy",
+  "migration:reset": "prisma migrate reset",
+  "migration:status": "prisma migrate status",
+  "prisma:generate": "prisma generate"
+  ```
 - [ ] Jalankan migration pertama (setelah model didefinisikan di `schema.prisma`):
   ```bash
   npx prisma migrate dev --name init
@@ -434,52 +448,6 @@ src/
   ```bash
   # Staging / Production
   npx prisma migrate deploy
-  ```
-- [ ] Tambahkan scripts Prisma di `package.json`:
-  ```json
-  "migration:dev": "prisma migrate dev",
-  "migration:deploy": "prisma migrate deploy",
-  "migration:reset": "prisma migrate reset",
-  "migration:status": "prisma migrate status",
-  "prisma:generate": "prisma generate",
-  "seed": "ts-node -r tsconfig-paths/register prisma/seed.ts"
-  ```
-- [ ] Tambahkan `prisma.seed` config di `package.json` agar `prisma db seed` bekerja:
-  ```json
-  "prisma": {
-    "seed": "ts-node -r tsconfig-paths/register prisma/seed.ts"
-  }
-  ```
-- [ ] Buat seeder di `prisma/seed.ts`:
-  ```typescript
-  import { PrismaClient } from '@prisma/client';
-
-  const prisma = new PrismaClient();
-
-  async function main(): Promise<void> {
-    // Upsert agar idempoten — aman dijalankan berkali-kali
-    await prisma.user.upsert({
-      where: { email: 'admin@example.com' },
-      update: {},
-      create: {
-        email: 'admin@example.com',
-        password: '$2b$12$...', // bcrypt hash — generate dengan: bcrypt.hash('admin123', 12)
-      },
-    });
-    console.log('Seed complete');
-  }
-
-  main()
-    .catch(console.error)
-    .finally(() => prisma.$disconnect());
-  ```
-- [ ] Gunakan `faker.js` untuk generate data development:
-  ```bash
-  npm install -D @faker-js/faker
-  ```
-- [ ] Jalankan seeder:
-  ```bash
-  npx prisma db seed
   ```
 
 ---
@@ -558,6 +526,66 @@ src/
 - [ ] Hash password menggunakan `bcrypt` dengan salt rounds minimum 12:
   ```typescript
   const hashedPassword = await bcrypt.hash(password, 12);
+  ```
+- [ ] Tambahkan field `role` ke model `User` di `prisma/schema.prisma` dan jalankan migration:
+  ```prisma
+  enum Role {
+    ADMIN
+    USER
+    MODERATOR
+  }
+
+  model User {
+    // ... field yang sudah ada ...
+    role Role @default(USER)
+  }
+  ```
+  ```bash
+  npx prisma migrate dev --name add-user-role
+  ```
+- [ ] Buat seeder admin user di `prisma/seed.ts` — **baru bisa dibuat setelah `bcrypt` dan field `role` tersedia**:
+  ```typescript
+  import { PrismaClient, Role } from '@prisma/client';
+  import * as bcrypt from 'bcrypt';
+
+  const prisma = new PrismaClient();
+
+  async function main(): Promise<void> {
+    // Upsert agar idempoten — aman dijalankan berkali-kali
+    const hashedPassword = await bcrypt.hash('admin123', 12);
+    await prisma.user.upsert({
+      where: { email: 'admin@example.com' },
+      update: {},
+      create: {
+        email: 'admin@example.com',
+        password: hashedPassword,
+        role: Role.ADMIN,
+      },
+    });
+    console.log('Seed complete');
+  }
+
+  main()
+    .catch(console.error)
+    .finally(() => prisma.$disconnect());
+  ```
+- [ ] Install `@faker-js/faker` untuk generate data development:
+  ```bash
+  npm install -D @faker-js/faker
+  ```
+- [ ] Tambahkan `seed` script dan `prisma.seed` config di `package.json`:
+  ```json
+  // scripts:
+  "seed": "ts-node -r tsconfig-paths/register prisma/seed.ts"
+
+  // top-level:
+  "prisma": {
+    "seed": "ts-node -r tsconfig-paths/register prisma/seed.ts"
+  }
+  ```
+- [ ] Jalankan seeder:
+  ```bash
+  npx prisma db seed
   ```
 - [ ] (opsional) Implementasi **OAuth2 / Social Login**:
   - `passport-google-oauth20` untuk Google

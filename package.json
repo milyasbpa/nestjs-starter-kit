@@ -24,7 +24,12 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "postinstall": "prisma generate",
-    "prepare": "husky"
+    "prepare": "husky",
+    "migration:dev": "prisma migrate dev",
+    "migration:deploy": "prisma migrate deploy",
+    "migration:reset": "prisma migrate reset",
+    "migration:status": "prisma migrate status",
+    "prisma:generate": "prisma generate"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
