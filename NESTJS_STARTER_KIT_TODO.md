@@ -591,11 +591,11 @@ src/
 
 ## 8. API Design & Swagger
 
-- [ ] Install Swagger:
+- [x] Install Swagger:
   ```bash
   npm install @nestjs/swagger swagger-ui-express
   ```
-- [ ] Setup Swagger di `main.ts` — **hanya aktif di non-production**:
+- [x] Setup Swagger di `main.ts` — **hanya aktif di non-production**:
   ```typescript
   if (process.env.NODE_ENV !== 'production') {
     const config = new DocumentBuilder()
@@ -613,13 +613,13 @@ src/
     });
   }
   ```
-- [ ] Dekorasi semua DTO dan controller dengan Swagger decorators:
+- [x] Dekorasi semua DTO dan controller dengan Swagger decorators:
   - `@ApiTags('auth')` di controller
   - `@ApiOperation({ summary: '...' })` di setiap endpoint
   - `@ApiResponse({ status: 200, type: ResponseDto })` untuk documented response
   - `@ApiProperty()` di setiap DTO field
   - `@ApiBearerAuth()` untuk endpoint yang butuh auth
-- [ ] Buat reusable Swagger utilities di `src/common/decorators/`:
+- [x] Buat reusable Swagger utilities di `src/common/decorators/`:
   ```typescript
   // @ApiPaginatedResponse
   export const ApiPaginatedResponse = <T>(dto: Type<T>) =>
@@ -627,16 +627,16 @@ src/
       ApiOkResponse({ schema: { ... } })
     );
   ```
-- [ ] Gunakan **versioning** untuk API:
+- [x] Gunakan **versioning** untuk API:
   ```typescript
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
   // Endpoint: /v1/users, /v2/users
   ```
-- [ ] Aktifkan **global prefix**:
+- [x] Aktifkan **global prefix**:
   ```typescript
   app.setGlobalPrefix('api');
   ```
-- [ ] Standardisasi response format via `TransformInterceptor`:
+- [x] Standardisasi response format via `TransformInterceptor`:
   ```typescript
   @Injectable()
   export class TransformInterceptor<T> implements NestInterceptor<T, ApiResponse<T>> {
@@ -664,21 +664,22 @@ src/
 >
 > **Tidak perlu install `class-validator` atau `class-transformer`.**
 
-- [ ] Install `nestjs-zod`:
+- [x] Install `nestjs-zod`:
   ```bash
   npm install nestjs-zod
   ```
-- [ ] Panggil `patchNestjsSwagger()` di `main.ts` sebelum `SwaggerModule.createDocument()`:
+- [x] Integrasi Swagger — **nestjs-zod v5 menggunakan `cleanupOpenApiDoc`** (bukan `patchNestjsSwagger` yang sudah dihapus):
   ```typescript
-  import { patchNestjsSwagger } from 'nestjs-zod';
-  patchNestjsSwagger(); // harus dipanggil sebelum createDocument
+  import { cleanupOpenApiDoc } from 'nestjs-zod';
+  const document = cleanupOpenApiDoc(SwaggerModule.createDocument(app, config));
+  SwaggerModule.setup('api/docs', app, document, { ... });
   ```
-- [ ] Setup `ZodValidationPipe` secara global di `main.ts`:
+- [x] Setup `ZodValidationPipe` secara global di `main.ts`:
   ```typescript
   import { ZodValidationPipe } from 'nestjs-zod';
   app.useGlobalPipes(new ZodValidationPipe());
   ```
-- [ ] Definisikan semua DTO menggunakan `createZodDto` — schema sekaligus menjadi type dan Swagger docs:
+- [x] Definisikan semua DTO menggunakan `createZodDto` — schema sekaligus menjadi type dan Swagger docs:
   ```typescript
   import { z } from 'zod';
   import { createZodDto } from 'nestjs-zod';
@@ -691,12 +692,12 @@ src/
   export class RegisterDto extends createZodDto(RegisterSchema) {}
   // Swagger @ApiProperty() otomatis di-generate dari schema
   ```
-- [ ] Gunakan `.trim()` dan `.transform()` langsung di Zod schema untuk normalisasi input:
+- [x] Gunakan `.trim()` dan `.transform()` langsung di Zod schema untuk normalisasi input:
   ```typescript
   email: z.string().email().trim().toLowerCase(),
   password: z.string().min(6).trim(),
   ```
-- [ ] Buat shared schemas di `src/common/dto/` untuk reusable validations:
+- [x] Buat shared schemas di `src/common/dto/` untuk reusable validations:
   ```typescript
   // src/common/dto/pagination.dto.ts
   export const PaginationSchema = z.object({
@@ -705,7 +706,7 @@ src/
   });
   export class PaginationDto extends createZodDto(PaginationSchema) {}
   ```
-- [ ] Buat `ParseUUIDPipe` custom dengan pesan error yang jelas untuk path params:
+- [x] Buat `ParseUUIDPipe` custom dengan pesan error yang jelas untuk path params:
   ```typescript
   // src/common/pipes/parse-uuid.pipe.ts
   import { PipeTransform, Injectable, BadRequestException } from '@nestjs/common';
