@@ -726,7 +726,7 @@ src/
 
 ## 10. Error Handling & Exception Filters
 
-- [ ] Buat `src/common/exceptions/` dengan custom exceptions:
+- [x] Buat `src/common/exceptions/` dengan custom exceptions:
   ```typescript
   export class BusinessException extends HttpException {
     constructor(message: string, status: HttpStatus, public readonly code: string) {
@@ -746,7 +746,7 @@ src/
     }
   }
   ```
-- [ ] Buat `GlobalExceptionFilter` di `src/common/filters/global-exception.filter.ts`:
+- [x] Buat `GlobalExceptionFilter` di `src/common/filters/global-exception.filter.ts`:
   ```typescript
   @Catch()
   export class GlobalExceptionFilter implements ExceptionFilter {
@@ -776,15 +776,15 @@ src/
     }
   }
   ```
-- [ ] Register `GlobalExceptionFilter` secara global di `main.ts`:
+- [x] Register `GlobalExceptionFilter` secara global di `main.ts`:
   ```typescript
   app.useGlobalFilters(new GlobalExceptionFilter());
   ```
-- [ ] Handle **Prisma errors** di dalam filter — tangkap `PrismaClientKnownRequestError` dengan codes:
+- [x] Handle **Prisma errors** di dalam filter — tangkap `PrismaClientKnownRequestError` dengan codes:
   - `P2002` → unique constraint violation (duplicate key) → `409 Conflict`
   - `P2025` → record not found → `404 Not Found`
-- [ ] Handle **ValidationPipe errors** agar format response konsisten dengan error lainnya
-- [ ] Buat `src/common/constants/error-codes.constants.ts` — centralized error code registry
+- [x] Handle **ValidationPipe errors** agar format response konsisten dengan error lainnya (`ZodValidationException` → `422 Unprocessable Entity` dengan array pesan per field)
+- [x] Buat `src/common/constants/error-codes.constants.ts` — centralized error code registry
 
 ---
 
