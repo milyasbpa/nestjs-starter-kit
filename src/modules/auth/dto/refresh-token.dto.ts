@@ -1,6 +1,8 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { z } from 'zod';
+import { createZodDto } from 'nestjs-zod';
 
-export class RefreshTokenDto {
-  @ApiProperty()
-  refreshToken!: string;
-}
+export const RefreshTokenSchema = z.object({
+  refreshToken: z.string().min(1),
+});
+
+export class RefreshTokenDto extends createZodDto(RefreshTokenSchema) {}

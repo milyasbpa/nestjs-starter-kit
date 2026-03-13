@@ -656,57 +656,70 @@ src/
 
 ## 9. Validation & Transformation
 
-- [ ] Install `class-validator` dan `class-transformer`:
-  ```bash
-  npm install class-validator class-transformer
-  ```
-- [ ] Setup `ValidationPipe` secara global di `main.ts`:
-  ```typescript
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,            // strip unknown fields
-      forbidNonWhitelisted: true, // throw error jika ada field tidak dikenal
-      transform: true,            // auto-transform payload ke DTO class
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
-    }),
-  );
-  ```
-- [ ] Gunakan decorator `class-validator` di semua DTO:
-  ```typescript
-  export class CreateUserDto {
-    @ApiProperty({ example: 'user@example.com' })
-    @IsEmail()
-    @IsNotEmpty()
-    email: string;
+> **Catatan:** Project ini menggunakan **Zod** untuk validasi — bukan `class-validator`. Alasannya:
+> - Zod sudah terinstall (dipakai untuk env validation di Step 4)
+> - Schema = TypeScript type secara otomatis, tidak perlu deklarasi terpisah
+> - Lebih composable dan ekspresif dibanding decorator-based validation
+> - Integrasi Swagger via `nestjs-zod` yang auto-generate docs dari Zod schema
+>
+> **Tidak perlu install `class-validator` atau `class-transformer`.**
 
-    @ApiProperty({ minLength: 8 })
-    @IsString()
-    @MinLength(8)
-    @Matches(/^(?=.*[A-Z])(?=.*\d)/, { message: 'Password too weak' })
-    password: string;
-  }
+- [ ] Install `nestjs-zod`:
+  ```bash
+  npm install nestjs-zod
   ```
-- [ ] Buat custom validator decorator jika dibutuhkan:
+- [ ] Panggil `patchNestjsSwagger()` di `main.ts` sebelum `SwaggerModule.createDocument()`:
   ```typescript
-  @ValidatorConstraint({ async: true })
+  import { patchNestjsSwagger } from 'nestjs-zod';
+  patchNestjsSwagger(); // harus dipanggil sebelum createDocument
+  ```
+- [ ] Setup `ZodValidationPipe` secara global di `main.ts`:
+  ```typescript
+  import { ZodValidationPipe } from 'nestjs-zod';
+  app.useGlobalPipes(new ZodValidationPipe());
+  ```
+- [ ] Definisikan semua DTO menggunakan `createZodDto` — schema sekaligus menjadi type dan Swagger docs:
+  ```typescript
+  import { z } from 'zod';
+  import { createZodDto } from 'nestjs-zod';
+
+  export const RegisterSchema = z.object({
+    email: z.string().email(),
+    password: z.string().min(6),
+  });
+
+  export class RegisterDto extends createZodDto(RegisterSchema) {}
+  // Swagger @ApiProperty() otomatis di-generate dari schema
+  ```
+- [ ] Gunakan `.trim()` dan `.transform()` langsung di Zod schema untuk normalisasi input:
+  ```typescript
+  email: z.string().email().trim().toLowerCase(),
+  password: z.string().min(6).trim(),
+  ```
+- [ ] Buat shared schemas di `src/common/dto/` untuk reusable validations:
+  ```typescript
+  // src/common/dto/pagination.dto.ts
+  export const PaginationSchema = z.object({
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(10),
+  });
+  export class PaginationDto extends createZodDto(PaginationSchema) {}
+  ```
+- [ ] Buat `ParseUUIDPipe` custom dengan pesan error yang jelas untuk path params:
+  ```typescript
+  // src/common/pipes/parse-uuid.pipe.ts
+  import { PipeTransform, Injectable, BadRequestException } from '@nestjs/common';
+  import { z } from 'zod';
+
   @Injectable()
-  export class IsEmailUniqueConstraint implements ValidatorConstraintInterface {
-    constructor(private usersService: UsersService) {}
-    async validate(email: string): Promise<boolean> {
-      const user = await this.usersService.findByEmail(email);
-      return !user;
+  export class ParseUUIDPipe implements PipeTransform {
+    transform(value: unknown): string {
+      const result = z.string().uuid().safeParse(value);
+      if (!result.success) throw new BadRequestException('Invalid UUID format');
+      return result.data;
     }
   }
-  export const IsEmailUnique = () => registerDecorator({ ... });
   ```
-- [ ] Buat `TrimPipe` untuk otomatis strip whitespace dari string inputs
-- [ ] Buat `ParseUUIDPipe` custom dengan pesan error yang jelas:
-  ```typescript
-  new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND })
-  ```
-- [ ] Setup `enableImplicitConversion: true` agar query params otomatis di-cast (string → number, string → boolean)
 
 ---
 

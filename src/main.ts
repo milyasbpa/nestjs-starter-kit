@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ZodValidationPipe, cleanupOpenApiDoc } from 'nestjs-zod';
 
 import { AppModule } from './app.module';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
@@ -15,6 +16,9 @@ async function bootstrap(): Promise<void> {
   // Global response transform
   app.useGlobalInterceptors(new TransformInterceptor());
 
+  // Global Zod validation
+  app.useGlobalPipes(new ZodValidationPipe());
+
   // Swagger — non-production only
   if (process.env['NODE_ENV'] !== 'production') {
     const port = process.env['PORT'] ?? '3000';
@@ -27,7 +31,7 @@ async function bootstrap(): Promise<void> {
       .addServer('https://api.staging.example.com', 'Staging')
       .build();
 
-    const document = SwaggerModule.createDocument(app, config);
+    const document = cleanupOpenApiDoc(SwaggerModule.createDocument(app, config));
     SwaggerModule.setup('api/docs', app, document, {
       swaggerOptions: { persistAuthorization: true },
     });
