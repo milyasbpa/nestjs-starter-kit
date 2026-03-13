@@ -32,24 +32,24 @@
 
 ## 1. Project Initialization
 
-- [ ] Install NestJS CLI dan buat project baru:
+- [x] Install NestJS CLI dan buat project baru:
   ```bash
   npm i -g @nestjs/cli
   nest new project-name --package-manager npm
   ```
-- [ ] Set `engines` di `package.json` untuk lock versi Node.js minimum:
+- [x] Set `engines` di `package.json` untuk lock versi Node.js minimum:
   ```json
   "engines": {
     "node": ">=20.0.0",
     "npm": ">=10.0.0"
   }
   ```
-- [ ] Update `package.json`: set `name`, `description`, `version` (e.g. `1.0.0`)
-- [ ] Inisialisasi Git repository:
+- [x] Update `package.json`: set `name`, `description`, `version` (e.g. `1.0.0`)
+- [x] Inisialisasi Git repository:
   ```bash
   git init && git add . && git commit -m "chore: initial commit"
   ```
-- [ ] Setup `.gitignore` yang proper — tambahkan:
+- [x] Setup `.gitignore` yang proper — tambahkan:
   ```
   .env
   .env.*
@@ -59,8 +59,8 @@
   coverage/
   *.log
   ```
-- [ ] Buat `README.md` dengan instruksi setup project (prerequisites, env setup, cara run, cara test)
-- [ ] Pastikan structure TypeScript sudah benar di `tsconfig.json`:
+- [x] Buat `README.md` dengan instruksi setup project (prerequisites, env setup, cara run, cara test)
+- [x] Pastikan structure TypeScript sudah benar di `tsconfig.json`:
   ```json
   {
     "compilerOptions": {
