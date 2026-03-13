@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -8,17 +9,10 @@ import { databaseConfig } from './config/database.config';
 import { jwtConfig } from './config/jwt.config';
 import { redisConfig } from './config/redis.config';
 import { PrismaModule } from './database/prisma.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
+import { RolesGuard } from './modules/auth/guards/roles.guard';
 
-/**
- * Root Application Module
- *
- * This is the entry point for all NestJS modules.
- * As the app grows, feature modules (e.g. AuthModule, UsersModule) will be
- * imported here — either directly or through a shared CoreModule.
- *
- * Example:
- *   imports: [ConfigModule, PrismaModule, AuthModule, UsersModule, ...]
- */
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -28,9 +22,13 @@ import { PrismaModule } from './database/prisma.module';
       load: [appConfig, databaseConfig, jwtConfig, redisConfig],
     }),
     PrismaModule,
-    // Feature modules will be added here as the project grows
+    AuthModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
+  ],
 })
 export class AppModule {}

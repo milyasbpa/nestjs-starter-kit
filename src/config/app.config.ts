@@ -6,16 +6,18 @@ export const appConfig = (): Record<string, unknown> => ({
   appName: process.env.APP_NAME,
 });
 
-const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'staging', 'production']),
-  PORT: z.coerce.number().default(3000),
-  APP_NAME: z.string(),
-  DATABASE_URL: z.string().url(),
-});
+const envSchema = z
+  .object({
+    NODE_ENV: z.enum(['development', 'staging', 'production']),
+    PORT: z.coerce.number().default(3000),
+    APP_NAME: z.string(),
+    DATABASE_URL: z.string().url(),
+  })
+  .passthrough(); // allow unknown env vars (JWT_SECRET, REDIS_*, etc.) to pass through
 
 export type EnvConfig = z.infer<typeof envSchema>;
 
-export const validate = (config: Record<string, unknown>): EnvConfig => {
+export const validate = (config: Record<string, unknown>): Record<string, unknown> => {
   const result = envSchema.safeParse(config);
 
   if (!result.success) {

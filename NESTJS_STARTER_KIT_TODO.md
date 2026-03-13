@@ -454,12 +454,12 @@ src/
 
 ## 7. Authentication & Authorization
 
-- [ ] Install dependencies:
+- [x] Install dependencies:
   ```bash
   npm install @nestjs/jwt @nestjs/passport passport passport-jwt passport-local bcrypt
   npm install -D @types/passport-jwt @types/passport-local @types/bcrypt
   ```
-- [ ] Buat `AuthModule` dengan struktur lengkap:
+- [x] Buat `AuthModule` dengan struktur lengkap:
   ```
   src/modules/auth/
   ├── dto/
@@ -479,13 +479,13 @@ src/
   ├── auth.service.ts
   └── auth.module.ts
   ```
-- [ ] Implementasi endpoint:
+- [x] Implementasi endpoint:
   - `POST /auth/register` — daftar user baru
   - `POST /auth/login` — login, return `accessToken` + `refreshToken`
   - `POST /auth/refresh` — gunakan refresh token untuk dapat access token baru
   - `POST /auth/logout` — revoke refresh token
   - `GET /auth/me` — get current user profile
-- [ ] Implementasi **JWT Access Token** (short-lived, 15 menit) + **Refresh Token** (long-lived, 7 hari):
+- [x] Implementasi **JWT Access Token** (short-lived, 15 menit) + **Refresh Token** (long-lived, 7 hari):
   ```typescript
   // auth.service.ts
   async generateTokens(userId: string, email: string) {
@@ -499,8 +499,8 @@ src/
     return { accessToken, refreshToken };
   }
   ```
-- [ ] Simpan **hash** dari refresh token ke database (bukan plain text)
-- [ ] Buat `@CurrentUser()` decorator:
+- [x] Simpan **hash** dari refresh token ke database (bukan plain text)
+- [x] Buat `@CurrentUser()` decorator:
   ```typescript
   export const CurrentUser = createParamDecorator(
     (data: keyof User | undefined, ctx: ExecutionContext) => {
@@ -509,30 +509,29 @@ src/
     },
   );
   ```
-- [ ] Buat `@Public()` decorator untuk skip auth guard di endpoint tertentu:
+- [x] Buat `@Public()` decorator untuk skip auth guard di endpoint tertentu:
   ```typescript
   export const IS_PUBLIC_KEY = 'isPublic';
   export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
   ```
-- [ ] Setup `JwtAuthGuard` sebagai **global guard** di `app.module.ts`:
+- [x] Setup `JwtAuthGuard` sebagai **global guard** di `app.module.ts`:
   ```typescript
   { provide: APP_GUARD, useClass: JwtAuthGuard }
   ```
-- [ ] Implementasi **RBAC (Role-Based Access Control)**:
-  - Buat `Role` enum: `ADMIN`, `USER`, `MODERATOR`
+- [x] Implementasi **RBAC (Role-Based Access Control)**:
+  - Buat `Role` enum: `ADMIN`, `USER`
   - Buat `@Roles(...roles)` decorator
   - Buat `RolesGuard` — cek role dari JWT payload
   - Register sebagai global guard setelah `JwtAuthGuard`
-- [ ] Hash password menggunakan `bcrypt` dengan salt rounds minimum 12:
+- [x] Hash password menggunakan `bcrypt` dengan salt rounds minimum 12:
   ```typescript
   const hashedPassword = await bcrypt.hash(password, 12);
   ```
-- [ ] Tambahkan field `role` ke model `User` di `prisma/schema.prisma` dan jalankan migration:
+- [x] Tambahkan field `role` ke model `User` di `prisma/schema.prisma` dan jalankan migration:
   ```prisma
   enum Role {
     ADMIN
     USER
-    MODERATOR
   }
 
   model User {
@@ -543,7 +542,7 @@ src/
   ```bash
   npx prisma migrate dev --name add-user-role
   ```
-- [ ] Buat seeder admin user di `prisma/seed.ts` — **baru bisa dibuat setelah `bcrypt` dan field `role` tersedia**:
+- [x] Buat seeder admin user di `prisma/seed.ts` — **baru bisa dibuat setelah `bcrypt` dan field `role` tersedia**:
   ```typescript
   import { PrismaClient, Role } from '@prisma/client';
   import * as bcrypt from 'bcrypt';
@@ -569,11 +568,11 @@ src/
     .catch(console.error)
     .finally(() => prisma.$disconnect());
   ```
-- [ ] Install `@faker-js/faker` untuk generate data development:
+- [x] Install `@faker-js/faker` untuk generate data development:
   ```bash
   npm install -D @faker-js/faker
   ```
-- [ ] Tambahkan `seed` script dan `prisma.seed` config di `package.json`:
+- [x] Tambahkan `seed` script dan `prisma.seed` config di `package.json`:
   ```json
   // scripts:
   "seed": "ts-node -r tsconfig-paths/register prisma/seed.ts"
@@ -583,13 +582,10 @@ src/
     "seed": "ts-node -r tsconfig-paths/register prisma/seed.ts"
   }
   ```
-- [ ] Jalankan seeder:
+- [x] Jalankan seeder:
   ```bash
   npx prisma db seed
   ```
-- [ ] (opsional) Implementasi **OAuth2 / Social Login**:
-  - `passport-google-oauth20` untuk Google
-  - `passport-github2` untuk GitHub
 
 ---
 

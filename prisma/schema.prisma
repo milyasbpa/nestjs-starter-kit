@@ -14,14 +14,21 @@ datasource db {
 // Add id, createdAt, updatedAt, deletedAt manually to each model.
 // ---------------------------------------------------------------------------
 
+enum Role {
+  ADMIN
+  USER
+}
+
 model User {
   id        String    @id @default(uuid()) @db.Uuid
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime? // soft delete
 
-  email    String @unique
-  password String
+  email            String  @unique
+  password         String
+  role             Role    @default(USER)
+  refreshTokenHash String?
 
   @@map("users")
 }
