@@ -82,7 +82,7 @@
 
 Gunakan **Modular Clean Architecture** — setiap domain/feature adalah NestJS Module yang mandiri.
 
-- [ ] Buat struktur folder berikut:
+- [x] Buat struktur folder berikut:
 
 ```
 src/
@@ -124,8 +124,8 @@ src/
 └── main.ts                 # bootstrap, global middleware, Swagger setup
 ```
 
-- [ ] Buat `app.module.ts` sebagai root module yang mengimpor semua feature module
-- [ ] Buat `src/common/interfaces/paginated-response.interface.ts` untuk standarisasi response pagination:
+- [x] Buat `app.module.ts` sebagai root module yang mengimpor semua feature module
+- [x] Buat `src/common/interfaces/paginated-response.interface.ts` untuk standarisasi response pagination:
   ```typescript
   export interface PaginatedResponse<T> {
     data: T[];
@@ -137,7 +137,7 @@ src/
     };
   }
   ```
-- [ ] Buat `src/common/interfaces/api-response.interface.ts` untuk standarisasi semua response:
+- [x] Buat `src/common/interfaces/api-response.interface.ts` untuk standarisasi semua response:
   ```typescript
   export interface ApiResponse<T> {
     success: boolean;
