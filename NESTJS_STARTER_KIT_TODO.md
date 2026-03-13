@@ -236,12 +236,12 @@ src/
 
 ## 4. Environment Configuration
 
-- [ ] Install `@nestjs/config` dan `joi` untuk validasi env:
+- [x] Install `@nestjs/config` dan `zod` untuk validasi env:
   ```bash
-  npm install @nestjs/config joi
+  npm install @nestjs/config zod
   ```
-- [ ] Buat file `.env.development`, `.env.staging`, `.env.production` (jangan di-commit), dan `.env.example` sebagai reference yang di-commit
-- [ ] Isi `.env.example`:
+- [x] Buat file `.env.development`, `.env.staging`, `.env.production` (jangan di-commit), dan `.env.example` sebagai reference yang di-commit
+- [x] Isi `.env.example`:
   ```env
   # App
   NODE_ENV=development
@@ -271,9 +271,9 @@ src/
   AWS_SECRET_ACCESS_KEY=
   AWS_REGION=ap-southeast-1
   ```
-- [ ] Buat `src/config/app.config.ts` dengan validasi Joi:
+- [x] Buat `src/config/app.config.ts` dengan validasi Zod:
   ```typescript
-  import * as Joi from 'joi';
+  import { z } from 'zod';
 
   export const appConfig = () => ({
     port: parseInt(process.env.PORT, 10) || 3000,
@@ -281,22 +281,28 @@ src/
     appName: process.env.APP_NAME,
   });
 
-  export const appValidationSchema = Joi.object({
-    NODE_ENV: Joi.string().valid('development', 'staging', 'production').required(),
-    PORT: Joi.number().default(3000),
-    APP_NAME: Joi.string().required(),
+  const envSchema = z.object({
+    NODE_ENV: z.enum(['development', 'staging', 'production']),
+    PORT: z.coerce.number().default(3000),
+    APP_NAME: z.string(),
   });
+
+  export type EnvConfig = z.infer<typeof envSchema>;
+
+  export const validate = (config: Record<string, unknown>): EnvConfig => {
+    return envSchema.parse(config);
+  };
   ```
-- [ ] Setup `ConfigModule` di `app.module.ts`:
+- [x] Setup `ConfigModule` di `app.module.ts`:
   ```typescript
   ConfigModule.forRoot({
     isGlobal: true,
     envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
-    validationSchema: appValidationSchema,
+    validate, // fungsi validate dari app.config.ts — throws ZodError jika env tidak valid
     load: [appConfig, databaseConfig, jwtConfig, redisConfig],
   })
   ```
-- [ ] Buat config module terpisah per domain (`database.config.ts`, `jwt.config.ts`, `redis.config.ts`) menggunakan `registerAs`:
+- [x] Buat config module terpisah per domain (`database.config.ts`, `jwt.config.ts`, `redis.config.ts`) menggunakan `registerAs`:
   ```typescript
   export const databaseConfig = registerAs('database', () => ({
     host: process.env.DB_HOST,
@@ -304,18 +310,13 @@ src/
     // ...
   }));
   ```
-- [ ] Buat `Makefile` untuk perintah yang sering digunakan:
-  ```makefile
-  dev:
-    NODE_ENV=development npm run start:dev
-  staging:
-    NODE_ENV=staging npm start
-  prod:
-    NODE_ENV=production npm run start:prod
-  migrate:
-    npm run migration:run
-  seed:
-    npm run seed
+- [x] Tambahkan npm scripts untuk perintah yang sering digunakan di `package.json`:
+  ```json
+  "start:dev": "NODE_ENV=development nest start --watch",
+  "start:staging": "NODE_ENV=staging node dist/main",
+  "start:prod": "NODE_ENV=production node dist/main",
+  "migration:run": "npm run typeorm -- migration:run -d src/database/data-source.ts",
+  "seed": "ts-node -r tsconfig-paths/register src/database/seeds/run-seed.ts"
   ```
 
 ---
@@ -1302,7 +1303,7 @@ Pilihan: **Prisma** (type-safe, auto-generated client) atau **TypeORM** (lebih m
     "@nestjs/core": "^10.0.0",
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/config": "^3.0.0",
-    "joi": "^17.0.0",
+    "zod": "^3.0.0",
 
     "@nestjs/typeorm": "^10.0.0",
     "typeorm": "^0.3.0",
