@@ -57,7 +57,7 @@ async function bootstrap(): Promise<void> {
 
   // Swagger — non-production only
   if (process.env['NODE_ENV'] !== 'production') {
-    const port = process.env['PORT'] ?? '3000';
+    const port = process.env['PORT'] ?? '4000';
     const config = new DocumentBuilder()
       .setTitle(process.env['APP_NAME'] ?? 'NestJS API')
       .setDescription('API Documentation')
@@ -74,6 +74,12 @@ async function bootstrap(): Promise<void> {
     });
   }
 
-  await app.listen(process.env['PORT'] ?? 3000);
+  // CORS — allow web frontend origins
+  app.enableCors({
+    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    credentials: true,
+  });
+
+  await app.listen(process.env['PORT'] ?? 4000);
 }
 void bootstrap();

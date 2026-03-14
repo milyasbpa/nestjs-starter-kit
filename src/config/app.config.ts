@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const appConfig = (): Record<string, unknown> => ({
-  port: parseInt(process.env.PORT ?? '3000', 10),
+  port: parseInt(process.env.PORT ?? '4000', 10),
   nodeEnv: process.env.NODE_ENV,
   appName: process.env.APP_NAME,
 });
@@ -9,7 +9,7 @@ export const appConfig = (): Record<string, unknown> => ({
 const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'staging', 'production', 'test']),
-    PORT: z.coerce.number().default(3000),
+    PORT: z.coerce.number().default(4000),
     APP_NAME: z.string(),
     DATABASE_URL: z.string().url(),
   })
