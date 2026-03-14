@@ -1087,22 +1087,22 @@ src/
 
 ## 17. Testing Setup
 
-- [ ] Setup struktur folder test yang mirror `src/`:
+> **Scope:** Unit tests (AuthService) + E2E tests (auth endpoints). Integration tests dengan real DB di-skip — bisa ditambahkan per-project sesuai kebutuhan.
+
+- [ ] Setup struktur folder test:
   ```
   test/
   ├── e2e/                          # end-to-end tests
-  │   ├── auth.e2e-spec.ts
-  │   └── users.e2e-spec.ts
+  │   └── auth.e2e-spec.ts
   └── helpers/
-      ├── test-database.helper.ts   # setup in-memory / test DB
-      ├── mock-factories.ts         # factory functions untuk test data
-      └── auth.helper.ts            # helper untuk generate valid JWT di test
+      ├── test-app.helper.ts        # bootstrap NestJS app untuk E2E
+      └── mock-factories.ts         # factory functions untuk mock data di unit tests
   ```
-- [ ] NestJS sudah include `jest` + `supertest` di default setup. Tambahkan:
+- [ ] NestJS sudah include `jest` + `supertest` di default setup. `@faker-js/faker` sudah terinstall di Step 7. Tambahkan:
   ```bash
-  npm install -D @faker-js/faker jest-mock-extended
+  npm install -D jest-mock-extended
   ```
-- [ ] Konfigurasi Jest di `jest.config.js`:
+- [ ] Konfigurasi Jest di `jest.config.js` (untuk unit tests):
   ```js
   module.exports = {
     moduleFileExtensions: ['js', 'json', 'ts'],
@@ -1116,44 +1116,80 @@ src/
     },
   };
   ```
-- [ ] **Unit Tests** — test setiap service secara terisolasi dengan mock dependencies:
+- [ ] **Unit Tests** — test `AuthService` secara terisolasi, mock `PrismaService` dan `JwtService`:
   ```typescript
+  // src/modules/auth/auth.service.spec.ts
   describe('AuthService', () => {
     let service: AuthService;
-    let usersService: MockType<UsersService>;
+    let prisma: DeepMockProxy<PrismaService>;
+    let jwtService: DeepMockProxy<JwtService>;
 
     beforeEach(async () => {
       const module = await Test.createTestingModule({
         providers: [
           AuthService,
-          { provide: UsersService, useFactory: mockFactory },
+          { provide: PrismaService, useValue: mockDeep<PrismaService>() },
+          { provide: JwtService, useValue: mockDeep<JwtService>() },
+          { provide: ConfigService, useValue: mockDeep<ConfigService>() },
         ],
       }).compile();
+
       service = module.get(AuthService);
+      prisma = module.get(PrismaService);
+      jwtService = module.get(JwtService);
     });
+
+    it('should hash password and create user on register', async () => { ... });
+    it('should throw if email already exists', async () => { ... });
+    it('should return tokens on valid login', async () => { ... });
+    it('should throw UnauthorizedException on invalid password', async () => { ... });
   });
-  ```
-- [ ] **Integration Tests** — test module secara keseluruhan dengan real database:
-  ```typescript
-  // Gunakan test database terpisah atau Docker Compose test service
-  // Prisma tidak mendukung SQLite in-memory untuk PostgreSQL schema
-  // Setup: DATABASE_URL=postgresql://...myapp_test di environment test
-  beforeAll(async () => { await prisma.$executeRaw`TRUNCATE ...`; });
   ```
 - [ ] **E2E Tests** — test full HTTP request cycle dengan `supertest`:
   ```typescript
+  // test/e2e/auth.e2e-spec.ts
   describe('POST /api/v1/auth/login', () => {
     it('should return tokens on valid credentials', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/v1/auth/login')
-        .send({ email: 'test@example.com', password: 'password123' })
+        .send({ email: 'admin@example.com', password: 'admin123' })
         .expect(200);
 
       expect(response.body.data).toHaveProperty('accessToken');
+      expect(response.body.data).toHaveProperty('refreshToken');
+    });
+
+    it('should return 401 on invalid credentials', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/login')
+        .send({ email: 'admin@example.com', password: 'wrong' })
+        .expect(401);
     });
   });
   ```
-- [ ] Buat `TestDatabaseHelper` yang setup dan teardown test database otomatis
+  > E2E tests menggunakan test database terpisah (`DATABASE_URL` di `.env.test`). Seed data minimal dibuat di `beforeAll`.
+- [ ] Buat `test/helpers/test-app.helper.ts` — bootstrap full NestJS app untuk E2E:
+  ```typescript
+  export async function createTestApp(): Promise<INestApplication> {
+    const module = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+    const app = module.createNestApplication();
+    // apply same global setup as main.ts (pipes, filters, interceptors)
+    await app.init();
+    return app;
+  }
+  ```
+- [ ] Buat `test/jest-e2e.json` — config Jest khusus E2E:
+  ```json
+  {
+    "moduleFileExtensions": ["js", "json", "ts"],
+    "rootDir": ".",
+    "testRegex": ".e2e-spec.ts$",
+    "transform": { "^.+\\.(t|j)s$": "ts-jest" },
+    "testEnvironment": "node"
+  }
+  ```
 - [ ] Setup `jest --runInBand` untuk E2E tests agar tidak race condition
 - [ ] Tambahkan scripts di `package.json`:
   ```json
@@ -1163,7 +1199,7 @@ src/
   "test:e2e": "jest --config ./test/jest-e2e.json --runInBand"
   ```
   > Jalankan dengan: `npm test`, `npm run test:cov`, `npm run test:e2e`
-- [ ] Target minimum coverage: **70%** untuk service layer, **80%** untuk critical path (auth, payment)
+- [ ] Target minimum coverage: **70%** untuk service layer
 
 ---
 

@@ -8,7 +8,7 @@ export const appConfig = (): Record<string, unknown> => ({
 
 const envSchema = z
   .object({
-    NODE_ENV: z.enum(['development', 'staging', 'production']),
+    NODE_ENV: z.enum(['development', 'staging', 'production', 'test']),
     PORT: z.coerce.number().default(3000),
     APP_NAME: z.string(),
     DATABASE_URL: z.string().url(),
