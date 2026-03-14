@@ -1258,7 +1258,7 @@ src/
   - `DOCKER_REGISTRY_TOKEN`
   - `DEPLOY_SSH_KEY`
   - `SLACK_WEBHOOK_URL`
-- [ ] Buat `Dockerfile` multi-stage untuk image production yang lean:
+- [x] Buat `Dockerfile` multi-stage untuk image production yang lean:
   ```dockerfile
   # Build stage
   FROM node:20-alpine AS builder
@@ -1276,7 +1276,7 @@ src/
   EXPOSE 3000
   CMD ["node", "dist/main"]
   ```
-- [ ] Buat `.dockerignore`:
+- [x] Buat `.dockerignore`:
   ```
   node_modules
   .git
@@ -1285,7 +1285,7 @@ src/
   dist
   npm-debug.log*
   ```
-- [ ] Tambahkan Docker Compose override untuk production:
+- [x] Tambahkan Docker Compose override untuk production:
   ```yaml
   # docker-compose.prod.yml
   services:

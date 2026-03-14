@@ -1,0 +1,32 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+
+# Test coverage
+coverage
+
+# Git
+.git
+.gitignore
+
+# Environment files — never bake secrets into the image
+.env*
+!.env.example
+
+# Logs
+npm-debug.log*
+*.log
+
+# Test files
+test
+**/*.spec.ts
+**/*.e2e-spec.ts
+
+# Local Docker overrides
+docker-compose*.yml
+
+# Misc
+.DS_Store
+README.md
