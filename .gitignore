@@ -26,3 +26,6 @@ logs/
 *.swo
 
 /generated/prisma
+
+# Generated OpenAPI spec (local only — run app to regenerate)
+openapi.json

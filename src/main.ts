@@ -68,6 +68,7 @@ async function bootstrap(): Promise<void> {
       .build();
 
     const document = cleanupOpenApiDoc(SwaggerModule.createDocument(app, config));
+
     SwaggerModule.setup('api/docs', app, document, {
       swaggerOptions: { persistAuthorization: true },
     });
