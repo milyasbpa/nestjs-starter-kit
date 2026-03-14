@@ -5,8 +5,10 @@
     "moduleResolution": "node",
     "resolvePackageJsonExports": false,
     "types": ["jest", "node"],
-    "noEmit": true
+    "outDir": "./dist-spec",
+    "composite": true,
+    "ignoreDeprecations": "6.0"
   },
-  "include": ["src/**/*.spec.ts", "src/**/*.d.ts", "test/**/*.ts"],
+  "include": ["src/**/*.ts", "test/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

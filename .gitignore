@@ -5,6 +5,7 @@
 
 # Build output
 dist/
+dist-spec/
 
 # Dependencies
 node_modules/

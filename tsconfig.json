@@ -14,7 +14,7 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
-    "ignoreDeprecations": "5.0",
+    "ignoreDeprecations": "6.0",
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,
@@ -24,5 +24,8 @@
     "strictBindCallApply": true,
     "noFallthroughCasesInSwitch": false
   },
-  "exclude": ["node_modules", "dist", "**/*.spec.ts", "test"]
+  "exclude": ["node_modules", "dist"],
+  "references": [
+    { "path": "./tsconfig.spec.json" }
+  ]
 }
