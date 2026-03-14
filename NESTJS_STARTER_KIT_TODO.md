@@ -1294,6 +1294,17 @@ src/
       restart: always
       env_file: .env.production
   ```
+- [x] Cara menjalankan:
+  ```bash
+  # Build image saja
+  docker build -t nestjs-starter-kit:latest .
+
+  # Build & run full production stack (app + postgres)
+  docker compose -f docker-compose.prod.yml up -d --build
+
+  # Hanya stop tanpa hapus volume
+  docker compose -f docker-compose.prod.yml down
+  ```
 
 ---
 
