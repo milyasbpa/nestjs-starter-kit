@@ -7,11 +7,7 @@ module.exports = {
     '^.+\\.(t|j)s$': [
       'ts-jest',
       {
-        tsconfig: {
-          module: 'commonjs',
-          moduleResolution: 'node',
-          resolvePackageJsonExports: false,
-        },
+        tsconfig: '<rootDir>/../tsconfig.spec.json',
       },
     ],
   },
