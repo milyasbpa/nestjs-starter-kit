@@ -1089,7 +1089,7 @@ src/
 
 > **Scope:** Unit tests (AuthService) + E2E tests (auth endpoints). Integration tests dengan real DB di-skip — bisa ditambahkan per-project sesuai kebutuhan.
 
-- [ ] Setup struktur folder test:
+- [x] Setup struktur folder test:
   ```
   test/
   ├── e2e/                          # end-to-end tests
@@ -1098,11 +1098,11 @@ src/
       ├── test-app.helper.ts        # bootstrap NestJS app untuk E2E
       └── mock-factories.ts         # factory functions untuk mock data di unit tests
   ```
-- [ ] NestJS sudah include `jest` + `supertest` di default setup. `@faker-js/faker` sudah terinstall di Step 7. Tambahkan:
+- [x] NestJS sudah include `jest` + `supertest` di default setup. `@faker-js/faker` sudah terinstall di Step 7. Tambahkan:
   ```bash
   npm install -D jest-mock-extended
   ```
-- [ ] Konfigurasi Jest di `jest.config.js` (untuk unit tests):
+- [x] Konfigurasi Jest di `jest.config.js` (untuk unit tests):
   ```js
   module.exports = {
     moduleFileExtensions: ['js', 'json', 'ts'],
@@ -1116,7 +1116,7 @@ src/
     },
   };
   ```
-- [ ] **Unit Tests** — test `AuthService` secara terisolasi, mock `PrismaService` dan `JwtService`:
+- [x] **Unit Tests** — test `AuthService` secara terisolasi, mock `PrismaService` dan `JwtService`:
   ```typescript
   // src/modules/auth/auth.service.spec.ts
   describe('AuthService', () => {
@@ -1145,7 +1145,7 @@ src/
     it('should throw UnauthorizedException on invalid password', async () => { ... });
   });
   ```
-- [ ] **E2E Tests** — test full HTTP request cycle dengan `supertest`:
+- [x] **E2E Tests** — test full HTTP request cycle dengan `supertest`:
   ```typescript
   // test/e2e/auth.e2e-spec.ts
   describe('POST /api/v1/auth/login', () => {
@@ -1168,7 +1168,7 @@ src/
   });
   ```
   > E2E tests menggunakan test database terpisah (`DATABASE_URL` di `.env.test`). Seed data minimal dibuat di `beforeAll`.
-- [ ] Buat `test/helpers/test-app.helper.ts` — bootstrap full NestJS app untuk E2E:
+- [x] Buat `test/helpers/test-app.helper.ts` — bootstrap full NestJS app untuk E2E:
   ```typescript
   export async function createTestApp(): Promise<INestApplication> {
     const module = await Test.createTestingModule({
@@ -1180,7 +1180,7 @@ src/
     return app;
   }
   ```
-- [ ] Buat `test/jest-e2e.json` — config Jest khusus E2E:
+- [x] Buat `test/jest-e2e.json` — config Jest khusus E2E:
   ```json
   {
     "moduleFileExtensions": ["js", "json", "ts"],
@@ -1190,8 +1190,8 @@ src/
     "testEnvironment": "node"
   }
   ```
-- [ ] Setup `jest --runInBand` untuk E2E tests agar tidak race condition
-- [ ] Tambahkan scripts di `package.json`:
+- [x] Setup `jest --runInBand` untuk E2E tests agar tidak race condition
+- [x] Tambahkan scripts di `package.json`:
   ```json
   "test": "jest",
   "test:watch": "jest --watch",
@@ -1199,7 +1199,7 @@ src/
   "test:e2e": "jest --config ./test/jest-e2e.json --runInBand"
   ```
   > Jalankan dengan: `npm test`, `npm run test:cov`, `npm run test:e2e`
-- [ ] Target minimum coverage: **70%** untuk service layer
+- [x] Target minimum coverage: **70%** untuk service layer
 
 ---
 
